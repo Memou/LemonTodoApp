@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="lemontodo.client/lemontodo.client.esproj">
+    <Build />
+    <Deploy />
+  </Project>
+  <Project Path="LemonTodo.Server/LemonTodo.Server.csproj" />
+</Solution>
