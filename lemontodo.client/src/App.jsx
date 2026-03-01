@@ -157,6 +157,7 @@ function App() {
 
     useEffect(() => {
         if (user) loadTasks(user.token);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [filter, sortBy, sortDirection]);
 
     const loadTasks = async (token) => {
@@ -378,7 +379,15 @@ function App() {
                             >
                                 taskflow
                             </Typography>
-                            <Tabs value={authMode} onChange={(e, v) => setAuthMode(v)} sx={{ mb: 4 }} centered>
+                            <Tabs 
+                                value={authMode} 
+                                onChange={(e, v) => {
+                                    setAuthMode(v);
+                                    setError(''); // Clear error when switching tabs
+                                }} 
+                                sx={{ mb: 4 }} 
+                                centered
+                            >
                                 <Tab label="Sign In" sx={{ flex: 1, fontSize: '1rem' }} />
                                 <Tab label="Sign Up" sx={{ flex: 1, fontSize: '1rem' }} />
                             </Tabs>

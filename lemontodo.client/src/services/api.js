@@ -15,12 +15,19 @@ export const authApi = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
         });
-        
+
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || 'Login failed');
+            let errorMessage = 'Login failed';
+            try {
+                const error = await response.json();
+                errorMessage = error.message || errorMessage;
+            } catch {
+                // JSON parsing failed, use status code
+                errorMessage = `Login failed (${response.status})`;
+            }
+            throw new Error(errorMessage);
         }
-        
+
         return response.json();
     },
 
@@ -30,12 +37,19 @@ export const authApi = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
         });
-        
+
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || 'Registration failed');
+            let errorMessage = 'Registration failed';
+            try {
+                const error = await response.json();
+                errorMessage = error.message || errorMessage;
+            } catch {
+                // JSON parsing failed, use status code
+                errorMessage = `Registration failed (${response.status})`;
+            }
+            throw new Error(errorMessage);
         }
-        
+
         return response.json();
     }
 };
@@ -249,8 +263,23 @@ export const tasksApi = {
         }
 
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || 'Failed to import tasks');
+            let errorMessage = 'Failed to import tasks';
+            try {
+                const error = await response.json();
+                // Log the full error for debugging
+                console.error('Import error details:', error);
+                errorMessage = error.message || error.title || errorMessage;
+                // If there are validation errors, include them
+                if (error.errors) {
+                    const validationErrors = Object.entries(error.errors)
+                        .map(([key, value]) => `${key}: ${value}`)
+                        .join(', ');
+                    errorMessage += ` - ${validationErrors}`;
+                }
+            } catch {
+                errorMessage = `Failed to import tasks (${response.status})`;
+            }
+            throw new Error(errorMessage);
         }
 
         return response.json();

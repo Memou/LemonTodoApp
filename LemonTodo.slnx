@@ -3,5 +3,6 @@
     <Build />
     <Deploy />
   </Project>
+  <Project Path="LemonTodo.Server.Tests/LemonTodo.Server.Tests.csproj" />
   <Project Path="LemonTodo.Server/LemonTodo.Server.csproj" />
 </Solution>
