@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -7,6 +7,7 @@
     <SpaRoot>..\lemontodo.client</SpaRoot>
     <SpaProxyLaunchCommand>npm run dev</SpaProxyLaunchCommand>
     <SpaProxyServerUrl>https://localhost:58900</SpaProxyServerUrl>
+    <UserSecretsId>a37b2e4a-cbe2-4039-9140-a671d55e0830</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
