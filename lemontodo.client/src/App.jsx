@@ -13,7 +13,6 @@ import {
     AppBar,
     Toolbar,
     IconButton,
-    Fab,
     Dialog,
     DialogTitle,
     DialogContent,
@@ -27,8 +26,6 @@ import {
     Tab,
     List,
     ListItem,
-    ListItemText,
-    Checkbox,
     Alert,
     CircularProgress,
     Stack,
@@ -38,12 +35,11 @@ import {
 import {
     Add as AddIcon,
     CheckCircle as CheckCircleIcon,
-    RadioButtonUnchecked as RadioButtonUncheckedIcon,
     Delete as DeleteIcon,
-    Logout as LogoutIcon,
     CalendarToday as CalendarIcon,
     ArrowUpward as ArrowUpwardIcon,
-    ArrowDownward as ArrowDownwardIcon
+    ArrowDownward as ArrowDownwardIcon,
+    Edit as EditIcon
 } from '@mui/icons-material';
 
 import { authApi, tasksApi } from './services/api';
@@ -53,10 +49,10 @@ const theme = createTheme({
     palette: {
         mode: 'light',
         primary: { main: '#1a1a1a', light: '#333333', dark: '#000000' },
-        secondary: { main: '#FFD166', light: '#FFE699', dark: '#CCAA52' },
+        secondary: { main: '#F7C948', light: '#FFE699', dark: '#C5A03A' },
         success: { main: '#10b981' },
         error: { main: '#ef4444' },
-        warning: { main: '#FFD166' },
+        warning: { main: '#F7C948' },
         background: { default: '#FFFBF5', paper: '#ffffff' },
         text: { primary: '#1a1a1a', secondary: '#666666' },
     },
@@ -67,7 +63,7 @@ const theme = createTheme({
         h3: { fontWeight: 600, fontSize: '2rem' },
         h4: { fontWeight: 700, fontSize: '1.75rem' },
         h5: { fontWeight: 600, fontSize: '1.5rem' },
-        h6: { fontWeight: 600, fontSize: '1.25rem' },
+        h6: { fontWeight: 700, fontSize: '1.25rem', letterSpacing: '-0.02em' },
         button: { textTransform: 'none', fontWeight: 600 },
     },
     shape: { borderRadius: 16 },
@@ -85,9 +81,10 @@ const theme = createTheme({
                     '&:hover': { boxShadow: '0 4px 12px rgba(0,0,0,0.15)' },
                 },
                 containedPrimary: {
-                    backgroundColor: '#FFD166',
+                    backgroundColor: '#F7C948',
                     color: '#1a1a1a',
-                    '&:hover': { backgroundColor: '#CCAA52' },
+                    '&:hover': { backgroundColor: '#FFD966' },
+                    '&:active': { backgroundColor: '#FFE699' },
                 },
             },
         },
@@ -104,15 +101,6 @@ const theme = createTheme({
                 root: { boxShadow: 'none', borderBottom: '1px solid rgba(0,0,0,0.08)' },
             },
         },
-        MuiFab: {
-            styleOverrides: {
-                root: {
-                    backgroundColor: '#FFD166',
-                    color: '#1a1a1a',
-                    '&:hover': { backgroundColor: '#CCAA52' },
-                },
-            },
-        },
     },
 });
 
@@ -121,6 +109,7 @@ function App() {
     const [tasks, setTasks] = useState([]);
     const [statistics, setStatistics] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isAuthLoading, setIsAuthLoading] = useState(false);
     const [authMode, setAuthMode] = useState(0);
     const [error, setError] = useState('');
     const [filter, setFilter] = useState('all');
@@ -130,17 +119,37 @@ function App() {
     const [taskForm, setTaskForm] = useState({ title: '', description: '', priority: 1, dueDate: getTodayDate() });
     const [deleteModal, setDeleteModal] = useState({ isOpen: false, taskId: null, taskTitle: '' });
     const [createModal, setCreateModal] = useState(false);
+    const [editModal, setEditModal] = useState({ isOpen: false, task: null });
 
     useEffect(() => {
         const token = storage.getToken();
         const username = storage.getUsername();
         if (token && username) {
             setUser({ username, token });
-            loadTasks(token);
+            // Validate token by attempting to load tasks
+            validateAndLoadTasks(token, username);
         } else {
             setIsLoading(false);
         }
     }, []);
+
+    const validateAndLoadTasks = async (token, username) => {
+        try {
+            const filters = { sortBy: 'createdAt', descending: true };
+            const data = await tasksApi.getAll(token, filters);
+            setTasks(data.tasks);
+            setStatistics(data.statistics);
+        } catch (error) {
+            // Token is invalid or expired, clear auth and show login
+            storage.clearAuth();
+            setUser(null);
+            setTasks([]);
+            setStatistics(null);
+            setError('');
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     useEffect(() => {
         if (user) loadTasks(user.token);
@@ -165,6 +174,7 @@ function App() {
     const handleAuth = async (e) => {
         e.preventDefault();
         setError('');
+        setIsAuthLoading(true);
         try {
             const { username, password } = authForm;
             const data = authMode === 0 ? await authApi.login(username, password) : await authApi.register(username, password);
@@ -174,6 +184,8 @@ function App() {
             await loadTasks(data.token);
         } catch (error) {
             setError(error.message);
+        } finally {
+            setIsAuthLoading(false);
         }
     };
 
@@ -182,6 +194,7 @@ function App() {
         setUser(null);
         setTasks([]);
         setStatistics(null);
+        setError(''); // Clear any errors
     };
 
     const handleCreateTask = async (e) => {
@@ -218,6 +231,47 @@ function App() {
         }
     };
 
+    const handleEditTask = async (e) => {
+        e.preventDefault();
+        setError('');
+        try {
+            const taskData = {
+                title: taskForm.title,
+                description: taskForm.description || null,
+                priority: parseInt(taskForm.priority),
+                dueDate: taskForm.dueDate || null
+            };
+            await tasksApi.update(user.token, editModal.task.id, taskData);
+            setEditModal({ isOpen: false, task: null });
+            setTaskForm({ title: '', description: '', priority: 1, dueDate: getTodayDate() });
+            await loadTasks(user.token);
+        } catch (error) {
+            if (error.message === 'UNAUTHORIZED') {
+                setError('Session expired. Please login again.');
+                handleLogout();
+            } else {
+                setError(error.message);
+            }
+        }
+    };
+
+    const openEditModal = (task) => {
+        setError('');
+        setTaskForm({
+            title: task.title,
+            description: task.description || '',
+            priority: task.priority,
+            dueDate: task.dueDate ? task.dueDate.split('T')[0] : getTodayDate()
+        });
+        setEditModal({ isOpen: true, task });
+    };
+
+    const closeEditModal = () => {
+        setEditModal({ isOpen: false, task: null });
+        setTaskForm({ title: '', description: '', priority: 1, dueDate: getTodayDate() });
+        setError('');
+    };
+
     const handleDeleteTask = async (taskId) => {
         try {
             await tasksApi.delete(user.token, taskId);
@@ -241,8 +295,28 @@ function App() {
         return (
             <ThemeProvider theme={theme}>
                 <CssBaseline />
-                <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
-                    <CircularProgress size={60} />
+                <Box 
+                    display="flex" 
+                    flexDirection="column"
+                    justifyContent="center" 
+                    alignItems="center" 
+                    minHeight="100vh"
+                    bgcolor="background.default"
+                    gap={3}
+                >
+                    <Typography 
+                        variant="h3" 
+                        sx={{ 
+                            color: 'text.primary',
+                            fontWeight: 700,
+                            letterSpacing: '-0.03em',
+                            textTransform: 'lowercase',
+                            mb: 2
+                        }}
+                    >
+                        taskflow
+                    </Typography>
+                    <CircularProgress size={50} thickness={4} sx={{ color: '#F7C948' }} />
                 </Box>
             </ThemeProvider>
         );
@@ -255,11 +329,18 @@ function App() {
                 <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2 }}>
                     <Card sx={{ maxWidth: 480, width: '100%', boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
                         <CardContent sx={{ p: 5 }}>
-                            <Typography variant="h4" align="center" gutterBottom fontWeight={700} sx={{ mb: 1 }}>
-                                TaskFlow
-                            </Typography>
-                            <Typography variant="body1" align="center" color="text.secondary" sx={{ mb: 4 }}>
-                                Simple, elegant task management
+                            <Typography 
+                                variant="h4" 
+                                align="center" 
+                                gutterBottom 
+                                fontWeight={700} 
+                                sx={{ 
+                                    mb: 4,
+                                    letterSpacing: '-0.03em',
+                                    textTransform: 'lowercase'
+                                }}
+                            >
+                                taskflow
                             </Typography>
                             <Tabs value={authMode} onChange={(e, v) => setAuthMode(v)} sx={{ mb: 4 }} centered>
                                 <Tab label="Sign In" sx={{ flex: 1, fontSize: '1rem' }} />
@@ -269,8 +350,19 @@ function App() {
                             <Box component="form" onSubmit={handleAuth}>
                                 <TextField fullWidth label="Username" value={authForm.username} onChange={(e) => setAuthForm({ ...authForm, username: e.target.value })} required inputProps={{ minLength: 3 }} sx={{ mb: 3 }} />
                                 <TextField fullWidth type="password" label="Password" value={authForm.password} onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })} required inputProps={{ minLength: 6 }} sx={{ mb: 4 }} />
-                                <Button fullWidth variant="contained" size="large" type="submit" sx={{ py: 1.5 }}>
-                                    {authMode === 0 ? 'Sign In' : 'Create Account'}
+                                <Button 
+                                    fullWidth 
+                                    variant="contained" 
+                                    size="large" 
+                                    type="submit" 
+                                    disabled={isAuthLoading}
+                                    sx={{ py: 1.5 }}
+                                >
+                                    {isAuthLoading ? (
+                                        <CircularProgress size={24} sx={{ color: '#1a1a1a' }} />
+                                    ) : (
+                                        authMode === 0 ? 'Sign In' : 'Create Account'
+                                    )}
                                 </Button>
                             </Box>
                         </CardContent>
@@ -284,26 +376,69 @@ function App() {
         <ThemeProvider theme={theme}>
             <CssBaseline />
             <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', pb: 10 }}>
-                <AppBar position="static" elevation={0} sx={{ bgcolor: 'background.paper' }}>
-                    <Toolbar sx={{ py: 1 }}>
-                        <Typography variant="h6" sx={{ flexGrow: 1, color: 'text.primary', fontWeight: 700, fontSize: '1.5rem' }}>
-                            TaskFlow
+                <AppBar position="static" elevation={0} sx={{ bgcolor: 'background.default', borderBottom: 'none' }}>
+                    <Toolbar sx={{ py: 1.5, px: { xs: 2, sm: 4 } }}>
+                        <Typography 
+                            variant="h6" 
+                            sx={{ 
+                                flexGrow: 0,
+                                mr: 6,
+                                color: 'text.primary', 
+                                fontWeight: 700, 
+                                fontSize: '1.75rem',
+                                letterSpacing: '-0.03em',
+                                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
+                                textTransform: 'lowercase'
+                            }}
+                        >
+                            taskflow
                         </Typography>
-                        <Typography variant="body2" sx={{ mr: 2, color: 'text.secondary' }}>
-                            {user.username}
-                        </Typography>
-                        <Button variant="outlined" size="small" onClick={handleLogout} sx={{ borderColor: 'divider', color: 'text.primary' }}>
-                            Sign Out
-                        </Button>
+                        <Box sx={{ flexGrow: 1 }} />
+                        <Stack direction="row" spacing={3} alignItems="center">
+                            <Typography 
+                                variant="body1" 
+                                sx={{ 
+                                    color: 'text.primary',
+                                    fontWeight: 500,
+                                    display: { xs: 'none', sm: 'block' },
+                                    fontSize: '0.95rem'
+                                }}
+                            >
+                                {user.username}
+                            </Typography>
+                            <Button 
+                                variant="text" 
+                                onClick={handleLogout} 
+                                sx={{ 
+                                    color: 'text.primary',
+                                    fontWeight: 500,
+                                    fontSize: '0.95rem',
+                                    px: 2,
+                                    '&:hover': { bgcolor: 'transparent', color: 'text.secondary' }
+                                }}
+                            >
+                                Sign Out
+                            </Button>
+                        </Stack>
                     </Toolbar>
                 </AppBar>
 
-                <Container maxWidth="md" sx={{ mt: 6 }}>
+                <Container maxWidth="lg" sx={{ mt: 6 }}>
                     <Paper elevation={0} sx={{ p: 4, mb: 4, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}>
                         <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap" sx={{ mb: 3 }}>
                             <Typography variant="h5" sx={{ flexGrow: 1, minWidth: '150px', fontWeight: 700 }}>
                                 Your Tasks
                             </Typography>
+                            {tasks.length > 0 && (
+                                <Button 
+                                    variant="contained" 
+                                    startIcon={<AddIcon />} 
+                                    onClick={openCreateModal}
+                                    sx={{ borderRadius: 32, display: { xs: 'none', sm: 'flex' } }}
+                                >
+                                    New Task
+                                </Button>
+                            )}
                             <FormControl size="small" sx={{ minWidth: 130 }}>
                                 <InputLabel>Filter</InputLabel>
                                 <Select value={filter} label="Filter" onChange={(e) => setFilter(e.target.value)}>
@@ -326,6 +461,19 @@ function App() {
                             </IconButton>
                         </Stack>
 
+                        {/* Mobile New Task Button - only show when tasks exist */}
+                        {tasks.length > 0 && (
+                            <Button 
+                                variant="contained" 
+                                fullWidth
+                                startIcon={<AddIcon />} 
+                                onClick={openCreateModal}
+                                sx={{ borderRadius: 32, mb: 3, display: { xs: 'flex', sm: 'none' } }}
+                            >
+                                New Task
+                            </Button>
+                        )}
+
                         {tasks.length === 0 ? (
                             <Box sx={{ textAlign: 'center', py: 10 }}>
                                 <Typography variant="h5" color="text.primary" gutterBottom fontWeight={600}>
@@ -342,35 +490,97 @@ function App() {
                             <List sx={{ width: '100%' }}>
                                 {tasks.map((task, index) => (
                                     <Box key={task.id}>
-                                        {index > 0 && <Divider sx={{ my: 2 }} />}
-                                        <ListItem alignItems="flex-start" sx={{ py: 2, px: 0, opacity: task.isCompleted ? 0.6 : 1, bgcolor: 'transparent', borderRadius: 2 }}>
-                                            <Checkbox checked={task.isCompleted} onChange={() => toggleTaskComplete(task)} icon={<RadioButtonUncheckedIcon />} checkedIcon={<CheckCircleIcon />} sx={{ mt: 0.5 }} />
-                                            <ListItemText
-                                                primary={
-                                                    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                                                        <Typography variant="h6" sx={{ textDecoration: task.isCompleted ? 'line-through' : 'none', fontSize: '1.1rem', fontWeight: 600 }}>
-                                                            {task.title}
-                                                        </Typography>
-                                                        <Chip label={getPriorityLabel(task.priority)} size="small" sx={{ bgcolor: getPriorityColor(task.priority), color: 'white', fontWeight: 600, height: 24 }} />
-                                                    </Stack>
+                                        {index > 0 && <Divider sx={{ my: 1.5 }} />}
+                                        <ListItem 
+                                            alignItems="flex-start"
+                                            onClick={() => openEditModal(task)}
+                                            sx={{ 
+                                                py: 1.5, 
+                                                px: 2, 
+                                                mx: -2,
+                                                opacity: task.isCompleted ? 0.6 : 1, 
+                                                bgcolor: 'transparent',
+                                                display: 'flex',
+                                                gap: 2,
+                                                cursor: 'pointer',
+                                                borderRadius: 2,
+                                                transition: 'all 0.2s ease',
+                                                '&:hover': {
+                                                    bgcolor: 'action.hover',
+                                                    transform: 'translateX(4px)'
                                                 }
-                                                secondary={
-                                                    <Box sx={{ mt: 1 }}>
-                                                        {task.description && (
-                                                            <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, lineHeight: 1.6 }}>
-                                                                {task.description}
-                                                            </Typography>
-                                                        )}
-                                                        <Stack direction="row" spacing={2} flexWrap="wrap">
-                                                            {task.dueDate && <Chip icon={<CalendarIcon sx={{ fontSize: 16 }} />} label={`Due ${new Date(task.dueDate).toLocaleDateString()}`} size="small" variant="outlined" sx={{ borderColor: 'text.secondary', color: 'text.secondary' }} />}
-                                                            {task.completedAt && <Chip icon={<CheckCircleIcon sx={{ fontSize: 16 }} />} label={`Completed ${new Date(task.completedAt).toLocaleDateString()}`} size="small" color="success" variant="outlined" />}
-                                                        </Stack>
-                                                    </Box>
-                                                }
-                                            />
-                                            <IconButton edge="end" onClick={() => setDeleteModal({ isOpen: true, taskId: task.id, taskTitle: task.title })} color="error" sx={{ mt: 0.5 }}>
-                                                <DeleteIcon />
-                                            </IconButton>
+                                            }}
+                                        >
+                                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                                                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" sx={{ mb: 0.5 }}>
+                                                    <Typography variant="h6" sx={{ textDecoration: task.isCompleted ? 'line-through' : 'none', fontSize: '1rem', fontWeight: 600 }}>
+                                                        {task.title}
+                                                    </Typography>
+                                                    <Chip label={getPriorityLabel(task.priority)} size="small" sx={{ bgcolor: getPriorityColor(task.priority), color: 'white', fontWeight: 600, height: 20, fontSize: '0.7rem' }} />
+                                                    {task.completedAt && <Chip icon={<CheckCircleIcon sx={{ fontSize: 14 }} />} label={`Completed ${new Date(task.completedAt).toLocaleDateString()}`} size="small" color="success" variant="outlined" sx={{ height: 20, fontSize: '0.7rem' }} />}
+                                                </Stack>
+
+                                                {task.description && (
+                                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, lineHeight: 1.4, fontSize: '0.875rem' }}>
+                                                        {task.description}
+                                                    </Typography>
+                                                )}
+
+                                                <Stack direction="row" spacing={1} flexWrap="wrap">
+                                                    {task.dueDate && <Chip icon={<CalendarIcon sx={{ fontSize: 14 }} />} label={`Due ${new Date(task.dueDate).toLocaleDateString()}`} size="small" variant="outlined" sx={{ borderColor: 'text.secondary', color: 'text.secondary', height: 20, fontSize: '0.7rem' }} />}
+                                                </Stack>
+                                            </Box>
+
+                                            <Stack direction="row" spacing={0.5} sx={{ flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+                                                {task.isCompleted ? (
+                                                    <Button 
+                                                        size="small" 
+                                                        variant="outlined"
+                                                        onClick={(e) => { e.stopPropagation(); toggleTaskComplete(task); }}
+                                                        sx={{ borderRadius: 16, textTransform: 'none', borderColor: 'text.secondary', color: 'text.secondary', minWidth: 'auto', px: 2.4, py: 0.6, fontSize: '0.96rem' }}
+                                                    >
+                                                        Undo
+                                                    </Button>
+                                                ) : (
+                                                    <Button 
+                                                        size="small" 
+                                                        variant="contained"
+                                                        onClick={(e) => { e.stopPropagation(); toggleTaskComplete(task); }}
+                                                        sx={{ 
+                                                            borderRadius: 16, 
+                                                            textTransform: 'none',
+                                                            bgcolor: '#10b981',
+                                                            color: 'white',
+                                                            minWidth: 'auto',
+                                                            px: 2.4,
+                                                            py: 0.6,
+                                                            fontSize: '0.96rem',
+                                                            '&:hover': {
+                                                                bgcolor: '#34d399'
+                                                            }
+                                                        }}
+                                                    >
+                                                        Complete
+                                                    </Button>
+                                                )}
+                                                <Button 
+                                                    size="small" 
+                                                    variant="outlined"
+                                                    onClick={(e) => { e.stopPropagation(); openEditModal(task); }}
+                                                    sx={{ borderRadius: 16, textTransform: 'none', minWidth: 'auto', px: 2.4, py: 0.6, fontSize: '0.96rem' }}
+                                                >
+                                                    Edit
+                                                </Button>
+                                                <Button 
+                                                    size="small" 
+                                                    variant="outlined"
+                                                    color="error"
+                                                    onClick={(e) => { e.stopPropagation(); setDeleteModal({ isOpen: true, taskId: task.id, taskTitle: task.title }); }}
+                                                    sx={{ borderRadius: 16, textTransform: 'none', minWidth: 'auto', px: 2.4, py: 0.6, fontSize: '0.96rem' }}
+                                                >
+                                                    Delete
+                                                </Button>
+                                            </Stack>
                                         </ListItem>
                                     </Box>
                                 ))}
@@ -379,16 +589,30 @@ function App() {
                     </Paper>
                 </Container>
 
-                <Fab color="primary" aria-label="add" onClick={openCreateModal} sx={{ position: 'fixed', bottom: 24, right: 24 }}>
-                    <AddIcon />
-                </Fab>
-
                 <Dialog open={createModal} onClose={closeCreateModal} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
-                    <DialogTitle sx={{ pb: 2, fontSize: '1.5rem', fontWeight: 700 }}>Create New Task</DialogTitle>
+                    <DialogTitle sx={{ pb: 2, pt: 3, px: 3, fontSize: '1.5rem', fontWeight: 700 }}>Create New Task</DialogTitle>
                     <form onSubmit={handleCreateTask}>
                         <DialogContent sx={{ pt: 0 }}>
                             {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
-                            <TextField fullWidth label="Task Title" value={taskForm.title} onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })} required autoFocus sx={{ mb: 3 }} />
+                            <TextField 
+                                fullWidth 
+                                label="Task Title" 
+                                value={taskForm.title} 
+                                onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })} 
+                                required 
+                                autoFocus 
+                                sx={{ 
+                                    mb: 3,
+                                    mt: 2,
+                                    '& .MuiInputLabel-root': {
+                                        backgroundColor: 'background.paper',
+                                        px: 1,
+                                        '&.MuiInputLabel-shrink': {
+                                            transform: 'translate(14px, -9px) scale(0.75)',
+                                        }
+                                    }
+                                }} 
+                            />
                             <TextField fullWidth label="Description (optional)" value={taskForm.description} onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })} multiline rows={3} sx={{ mb: 3 }} />
                             <FormControl fullWidth sx={{ mb: 3 }}>
                                 <InputLabel>Priority</InputLabel>
@@ -399,7 +623,35 @@ function App() {
                                     <MenuItem value={3}>Urgent</MenuItem>
                                 </Select>
                             </FormControl>
-                            <TextField fullWidth label="Due Date" type="date" value={taskForm.dueDate} onChange={(e) => setTaskForm({ ...taskForm, dueDate: e.target.value })} InputLabelProps={{ shrink: true }} inputProps={{ min: getTodayDate() }} />
+                            <TextField 
+                                fullWidth 
+                                label="Due Date" 
+                                type="date" 
+                                value={taskForm.dueDate} 
+                                onChange={(e) => setTaskForm({ ...taskForm, dueDate: e.target.value })} 
+                                InputLabelProps={{ shrink: true }} 
+                                inputProps={{ min: getTodayDate() }}
+                                onClick={(e) => {
+                                    // Open date picker when clicking anywhere on the field
+                                    if (e.target.type === 'date') {
+                                        e.target.showPicker?.();
+                                    }
+                                }}
+                                sx={{
+                                    cursor: 'pointer',
+                                    '& input[type="date"]': {
+                                        cursor: 'pointer'
+                                    },
+                                    '& input[type="date"]::-webkit-calendar-picker-indicator': {
+                                        cursor: 'pointer',
+                                        opacity: 1,
+                                        position: 'absolute',
+                                        right: 8,
+                                        width: 24,
+                                        height: 24
+                                    }
+                                }}
+                            />
                         </DialogContent>
                         <DialogActions sx={{ p: 3, pt: 2 }}>
                             <Button onClick={closeCreateModal} sx={{ color: 'text.secondary' }}>Cancel</Button>
@@ -408,14 +660,84 @@ function App() {
                     </form>
                 </Dialog>
 
+                {/* Edit Task Modal */}
+                <Dialog open={editModal.isOpen} onClose={closeEditModal} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
+                    <DialogTitle sx={{ pb: 2, pt: 3, px: 3, fontSize: '1.5rem', fontWeight: 700 }}>Edit Task</DialogTitle>
+                    <form onSubmit={handleEditTask}>
+                        <DialogContent sx={{ pt: 0 }}>
+                            {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
+                            <TextField 
+                                fullWidth 
+                                label="Task Title" 
+                                value={taskForm.title} 
+                                onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })} 
+                                required 
+                                autoFocus 
+                                sx={{ 
+                                    mb: 3,
+                                    mt: 2,
+                                    '& .MuiInputLabel-root': {
+                                        backgroundColor: 'background.paper',
+                                        px: 1,
+                                        '&.MuiInputLabel-shrink': {
+                                            transform: 'translate(14px, -9px) scale(0.75)',
+                                        }
+                                    }
+                                }} 
+                            />
+                            <TextField fullWidth label="Description (optional)" value={taskForm.description} onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })} multiline rows={3} sx={{ mb: 3 }} />
+                            <FormControl fullWidth sx={{ mb: 3 }}>
+                                <InputLabel>Priority</InputLabel>
+                                <Select value={taskForm.priority} label="Priority" onChange={(e) => setTaskForm({ ...taskForm, priority: e.target.value })}>
+                                    <MenuItem value={0}>Low Priority</MenuItem>
+                                    <MenuItem value={1}>Medium Priority</MenuItem>
+                                    <MenuItem value={2}>High Priority</MenuItem>
+                                    <MenuItem value={3}>Urgent</MenuItem>
+                                </Select>
+                            </FormControl>
+                            <TextField 
+                                fullWidth 
+                                label="Due Date" 
+                                type="date" 
+                                value={taskForm.dueDate} 
+                                onChange={(e) => setTaskForm({ ...taskForm, dueDate: e.target.value })} 
+                                InputLabelProps={{ shrink: true }} 
+                                inputProps={{ min: getTodayDate() }}
+                                onClick={(e) => {
+                                    if (e.target.type === 'date') {
+                                        e.target.showPicker?.();
+                                    }
+                                }}
+                                sx={{
+                                    cursor: 'pointer',
+                                    '& input[type="date"]': {
+                                        cursor: 'pointer'
+                                    },
+                                    '& input[type="date"]::-webkit-calendar-picker-indicator': {
+                                        cursor: 'pointer',
+                                        opacity: 1,
+                                        position: 'absolute',
+                                        right: 8,
+                                        width: 24,
+                                        height: 24
+                                    }
+                                }}
+                            />
+                        </DialogContent>
+                        <DialogActions sx={{ p: 3, pt: 2 }}>
+                            <Button onClick={closeEditModal} sx={{ color: 'text.secondary' }}>Cancel</Button>
+                            <Button type="submit" variant="contained" sx={{ minWidth: 120 }}>Update Task</Button>
+                        </DialogActions>
+                    </form>
+                </Dialog>
+
                 <Dialog open={deleteModal.isOpen} onClose={() => setDeleteModal({ ...deleteModal, isOpen: false })} PaperProps={{ sx: { borderRadius: 4 } }}>
                     <DialogTitle sx={{ fontSize: '1.5rem', fontWeight: 700 }}>Delete Task</DialogTitle>
                     <DialogContent>
                         <Typography sx={{ mb: 2 }}>Are you sure you want to delete this task?</Typography>
-                        <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 600 }}>
                             "{deleteModal.taskTitle}"
                         </Typography>
-                        <Alert severity="warning">This action cannot be undone.</Alert>
                     </DialogContent>
                     <DialogActions sx={{ p: 3, pt: 2 }}>
                         <Button onClick={() => setDeleteModal({ ...deleteModal, isOpen: false })} sx={{ color: 'text.secondary' }}>Cancel</Button>
