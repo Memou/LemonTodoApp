@@ -45,11 +45,6 @@ public class GetTasksHandler
 
         var tasks = await query.ToListAsync();
 
-        var totalCount = tasks.Count;
-        var completedCount = tasks.Count(t => t.IsCompleted);
-        var pendingCount = tasks.Count(t => !t.IsCompleted);
-        var overdueCount = tasks.Count(t => !t.IsCompleted && t.DueDate.HasValue && t.DueDate.Value < DateTime.UtcNow);
-
         return new TaskListResponse
         {
             Tasks = tasks.Select(t => new TaskResponse
@@ -63,14 +58,7 @@ public class GetTasksHandler
                 CreatedAt = t.CreatedAt,
                 CompletedAt = t.CompletedAt
             }),
-            TotalCount = totalCount,
-            Statistics = new TaskStatistics
-            {
-                TotalTasks = totalCount,
-                CompletedTasks = completedCount,
-                PendingTasks = pendingCount,
-                OverdueTasks = overdueCount
-            }
+            TotalCount = tasks.Count
         };
     }
 }

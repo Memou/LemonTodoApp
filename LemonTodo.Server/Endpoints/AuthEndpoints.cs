@@ -63,7 +63,6 @@ public static class AuthEndpoints
             if (response == null)
             {
                 // Security: Same message for both user not found and invalid password
-                // This prevents username enumeration attacks
                 return Results.Json(new { message = "Invalid username or password" }, statusCode: 401);
             }
 

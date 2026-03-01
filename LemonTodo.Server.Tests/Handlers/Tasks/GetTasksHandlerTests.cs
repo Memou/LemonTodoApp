@@ -38,7 +38,6 @@ public class GetTasksHandlerTests
         response.Should().NotBeNull();
         response.Tasks.Should().BeEmpty();
         response.TotalCount.Should().Be(0);
-        response.Statistics.TotalTasks.Should().Be(0);
     }
 
     [Fact]
@@ -60,9 +59,6 @@ public class GetTasksHandlerTests
         // Assert
         response.Tasks.Should().HaveCount(3);
         response.TotalCount.Should().Be(3);
-        response.Statistics.TotalTasks.Should().Be(3);
-        response.Statistics.CompletedTasks.Should().Be(1);
-        response.Statistics.PendingTasks.Should().Be(2);
     }
 
     [Fact]
@@ -174,30 +170,6 @@ public class GetTasksHandlerTests
         response.Tasks.ElementAt(0).Priority.Should().Be(TaskPriority.Low);
         response.Tasks.ElementAt(1).Priority.Should().Be(TaskPriority.High);
         response.Tasks.ElementAt(2).Priority.Should().Be(TaskPriority.Urgent);
-    }
-
-    [Fact]
-    public async Task HandleAsync_CalculatesStatistics_Correctly()
-    {
-        // Arrange
-        var tasks = new[]
-        {
-            new TodoTask { Id = Guid.NewGuid(), UserId = _testUserId, Title = "Task 1", Priority = TaskPriority.Low, IsCompleted = false, DueDate = DateTime.UtcNow.AddDays(-1) }, // Overdue
-            new TodoTask { Id = Guid.NewGuid(), UserId = _testUserId, Title = "Task 2", Priority = TaskPriority.Medium, IsCompleted = true },
-            new TodoTask { Id = Guid.NewGuid(), UserId = _testUserId, Title = "Task 3", Priority = TaskPriority.High, IsCompleted = false, DueDate = DateTime.UtcNow.AddDays(1) },
-            new TodoTask { Id = Guid.NewGuid(), UserId = _testUserId, Title = "Task 4", Priority = TaskPriority.Urgent, IsCompleted = false, DueDate = DateTime.UtcNow.AddDays(-2) } // Overdue
-        };
-        _context.Tasks.AddRange(tasks);
-        await _context.SaveChangesAsync();
-
-        // Act
-        var response = await _handler.HandleAsync(_testUserId, null, null, null, false);
-
-        // Assert
-        response.Statistics.TotalTasks.Should().Be(4);
-        response.Statistics.CompletedTasks.Should().Be(1);
-        response.Statistics.PendingTasks.Should().Be(3);
-        response.Statistics.OverdueTasks.Should().Be(2);
     }
 
     [Fact]

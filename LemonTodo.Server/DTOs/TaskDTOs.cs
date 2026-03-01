@@ -48,15 +48,6 @@ public class TaskListResponse
 {
     public IEnumerable<TaskResponse> Tasks { get; set; } = [];
     public int TotalCount { get; set; }
-    public TaskStatistics Statistics { get; set; } = null!;
-}
-
-public class TaskStatistics
-{
-    public int TotalTasks { get; set; }
-    public int CompletedTasks { get; set; }
-    public int PendingTasks { get; set; }
-    public int OverdueTasks { get; set; }
 }
 
 public class ImportTaskData

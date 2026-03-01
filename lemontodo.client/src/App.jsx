@@ -110,7 +110,6 @@ const theme = createTheme({
 function App() {
     const [user, setUser] = useState(null);
     const [tasks, setTasks] = useState([]);
-    const [statistics, setStatistics] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isAuthLoading, setIsAuthLoading] = useState(false);
     const [authMode, setAuthMode] = useState(0);
@@ -142,13 +141,11 @@ function App() {
             const filters = { sortBy: 'createdAt', descending: true };
             const data = await tasksApi.getAll(token, filters);
             setTasks(data.tasks);
-            setStatistics(data.statistics);
         } catch {
             // Token is invalid or expired, clear auth and show login
             storage.clearAuth();
             setUser(null);
             setTasks([]);
-            setStatistics(null);
             setError('');
         } finally {
             setIsLoading(false);
@@ -167,7 +164,6 @@ function App() {
             if (filter === 'pending') filters.isCompleted = 'false';
             const data = await tasksApi.getAll(token, filters);
             setTasks(data.tasks);
-            setStatistics(data.statistics);
         } catch (error) {
             if (error.message === 'UNAUTHORIZED') handleLogout();
             else setError('Failed to load tasks');
@@ -203,7 +199,6 @@ function App() {
         storage.clearAuth();
         setUser(null);
         setTasks([]);
-        setStatistics(null);
         setError(''); // Clear any errors
     };
 

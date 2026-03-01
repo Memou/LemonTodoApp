@@ -66,13 +66,6 @@ Accept: application/json
 
 ###
 
-### Get task statistics
-GET {{LemonTodo.Server_HostAddress}}/api/tasks/statistics
-Authorization: Bearer {{token}}
-Accept: application/json
-
-###
-
 ### Create a new task - Low Priority
 POST {{LemonTodo.Server_HostAddress}}/api/tasks
 Authorization: Bearer {{token}}
