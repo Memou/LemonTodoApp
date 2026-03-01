@@ -70,3 +70,12 @@ The project uses:
 - Consider Result Pattern if error handling becomes inconsistent (not needed yet)
 - Consider Repository Pattern if switching databases frequently (using EF Core is fine)
 - Consider MediatR if handler count exceeds 50+ (currently ~10)
+
+
+
+
+Can be improved:
+
+-Use result pattern at handlers and return more specific error messages.
+-For prod or upper environments use cloud secret vaults or environment variables instead of using user secrets. User secrets are only for development and should not be used in production. 
+-Implement health endpoints,application insight for better logging and monitoring.
