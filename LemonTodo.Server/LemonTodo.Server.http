@@ -1,6 +1,302 @@
 @LemonTodo.Server_HostAddress = http://localhost:5003
+@token = YOUR_JWT_TOKEN_HERE
 
-GET {{LemonTodo.Server_HostAddress}}/weatherforecast/
+### ============================================
+### AUTHENTICATION ENDPOINTS
+### ============================================
+
+### Register a new user
+POST {{LemonTodo.Server_HostAddress}}/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "password": "test123456"
+}
+
+###
+
+### Login (copy the token from response and update @token variable above)
+POST {{LemonTodo.Server_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "password": "test123456"
+}
+
+###
+
+### ============================================
+### TASK ENDPOINTS (Requires Authentication)
+### ============================================
+
+### Get all tasks (with optional filters)
+GET {{LemonTodo.Server_HostAddress}}/api/tasks?sortBy=createdAt&descending=true
+Authorization: Bearer {{token}}
 Accept: application/json
+
+###
+
+### Get all pending tasks
+GET {{LemonTodo.Server_HostAddress}}/api/tasks?isCompleted=false&sortBy=priority&descending=true
+Authorization: Bearer {{token}}
+Accept: application/json
+
+###
+
+### Get all completed tasks
+GET {{LemonTodo.Server_HostAddress}}/api/tasks?isCompleted=true&sortBy=completedAt&descending=true
+Authorization: Bearer {{token}}
+Accept: application/json
+
+###
+
+### Get tasks sorted by due date
+GET {{LemonTodo.Server_HostAddress}}/api/tasks?sortBy=dueDate&descending=false
+Authorization: Bearer {{token}}
+Accept: application/json
+
+###
+
+### Get task by ID
+GET {{LemonTodo.Server_HostAddress}}/api/tasks/1
+Authorization: Bearer {{token}}
+Accept: application/json
+
+###
+
+### Get task statistics
+GET {{LemonTodo.Server_HostAddress}}/api/tasks/statistics
+Authorization: Bearer {{token}}
+Accept: application/json
+
+###
+
+### Create a new task - Low Priority
+POST {{LemonTodo.Server_HostAddress}}/api/tasks
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "Buy groceries",
+  "description": "Get milk, eggs, and bread",
+  "priority": 0,
+  "dueDate": "2026-03-15"
+}
+
+###
+
+### Create a new task - Medium Priority
+POST {{LemonTodo.Server_HostAddress}}/api/tasks
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "Finish project report",
+  "description": "Complete Q1 analysis and submit",
+  "priority": 1,
+  "dueDate": "2026-03-10"
+}
+
+###
+
+### Create a new task - High Priority
+POST {{LemonTodo.Server_HostAddress}}/api/tasks
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "Team meeting preparation",
+  "description": "Prepare slides for Monday presentation",
+  "priority": 2,
+  "dueDate": "2026-03-08"
+}
+
+###
+
+### Create a new task - Urgent
+POST {{LemonTodo.Server_HostAddress}}/api/tasks
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "Fix production bug",
+  "description": "Critical issue in payment system",
+  "priority": 3,
+  "dueDate": "2026-03-05"
+}
+
+###
+
+### Create a task without optional fields
+POST {{LemonTodo.Server_HostAddress}}/api/tasks
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "Quick task",
+  "priority": 1
+}
+
+###
+
+### Update a task (replace 1 with actual task ID)
+PUT {{LemonTodo.Server_HostAddress}}/api/tasks/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "Updated task title",
+  "description": "Updated description",
+  "priority": 2,
+  "dueDate": "2026-03-20",
+  "isCompleted": false
+}
+
+###
+
+### Mark task as completed
+PUT {{LemonTodo.Server_HostAddress}}/api/tasks/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "isCompleted": true
+}
+
+###
+
+### Mark task as incomplete (undo)
+PUT {{LemonTodo.Server_HostAddress}}/api/tasks/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "isCompleted": false
+}
+
+###
+
+### Partially update task (only title)
+PUT {{LemonTodo.Server_HostAddress}}/api/tasks/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "New title only"
+}
+
+###
+
+### Delete a task (replace 1 with actual task ID)
+DELETE {{LemonTodo.Server_HostAddress}}/api/tasks/1
+Authorization: Bearer {{token}}
+
+###
+
+### ============================================
+### IMPORT / EXPORT ENDPOINTS
+### ============================================
+
+### Export tasks as JSON
+GET {{LemonTodo.Server_HostAddress}}/api/tasks/export?format=json
+Authorization: Bearer {{token}}
+
+###
+
+### Export tasks as CSV
+GET {{LemonTodo.Server_HostAddress}}/api/tasks/export?format=csv
+Authorization: Bearer {{token}}
+
+###
+
+### Import tasks from JSON/CSV format
+POST {{LemonTodo.Server_HostAddress}}/api/tasks/import
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "tasks": [
+    {
+      "title": "Imported Task 1",
+      "description": "This task was imported",
+      "priority": 1,
+      "isCompleted": false,
+      "dueDate": "2026-04-01"
+    },
+    {
+      "title": "Imported Task 2", 
+      "description": "Another imported task",
+      "priority": 2,
+      "isCompleted": false,
+      "dueDate": "2026-04-05"
+    }
+  ]
+}
+
+###
+
+### ============================================
+### ERROR TESTING
+### ============================================
+
+### Test unauthorized access (no token)
+GET {{LemonTodo.Server_HostAddress}}/api/tasks
+Accept: application/json
+
+###
+
+### Test invalid token
+GET {{LemonTodo.Server_HostAddress}}/api/tasks
+Authorization: Bearer invalid_token_here
+Accept: application/json
+
+###
+
+### Test invalid task creation (missing required fields)
+POST {{LemonTodo.Server_HostAddress}}/api/tasks
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "description": "Missing title field"
+}
+
+###
+
+### Test invalid priority value
+POST {{LemonTodo.Server_HostAddress}}/api/tasks
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "Test task",
+  "priority": 99
+}
+
+###
+
+### Test get non-existent task
+GET {{LemonTodo.Server_HostAddress}}/api/tasks/999999
+Authorization: Bearer {{token}}
+Accept: application/json
+
+###
+
+### Test update non-existent task
+PUT {{LemonTodo.Server_HostAddress}}/api/tasks/999999
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "Should fail"
+}
+
+###
+
+### Test delete non-existent task
+DELETE {{LemonTodo.Server_HostAddress}}/api/tasks/999999
+Authorization: Bearer {{token}}
 
 ###

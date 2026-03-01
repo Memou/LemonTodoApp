@@ -22,10 +22,10 @@ public class TasksController : ControllerBase
         _logger = logger;
     }
 
-    private int GetUserId()
+    private Guid GetUserId()
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
         {
             throw new UnauthorizedAccessException("Invalid user claims");
         }
@@ -107,7 +107,7 @@ public class TasksController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<TaskResponse>> GetTask(int id)
+    public async Task<ActionResult<TaskResponse>> GetTask(Guid id)
     {
         try
         {
@@ -194,7 +194,7 @@ public class TasksController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult<TaskResponse>> UpdateTask(int id, [FromBody] UpdateTaskRequest request)
+    public async Task<ActionResult<TaskResponse>> UpdateTask(Guid id, [FromBody] UpdateTaskRequest request)
     {
         try
         {
@@ -264,7 +264,7 @@ public class TasksController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteTask(int id)
+    public async Task<IActionResult> DeleteTask(Guid id)
     {
         try
         {
@@ -295,7 +295,7 @@ public class TasksController : ControllerBase
     }
 
     [HttpPost("bulk-delete")]
-    public async Task<IActionResult> BulkDeleteTasks([FromBody] int[] taskIds)
+    public async Task<IActionResult> BulkDeleteTasks([FromBody] Guid[] taskIds)
     {
         try
         {
@@ -324,6 +324,150 @@ public class TasksController : ControllerBase
         {
             _logger.LogError(ex, "Error bulk deleting tasks");
             return StatusCode(500, new { message = "An error occurred while deleting tasks" });
+        }
+    }
+
+    [HttpGet("export")]
+    public async Task<IActionResult> ExportTasks([FromQuery] string format = "json")
+    {
+        try
+        {
+            var userId = GetUserId();
+            var tasks = await _context.Tasks
+                .Where(t => t.UserId == userId)
+                .OrderByDescending(t => t.CreatedAt)
+                .ToListAsync();
+
+            if (format.ToLower() == "csv")
+            {
+                var csv = new System.Text.StringBuilder();
+                csv.AppendLine("Id,Title,Description,Priority,IsCompleted,DueDate,CreatedAt,CompletedAt");
+
+                foreach (var task in tasks)
+                {
+                    csv.AppendLine($"\"{task.Id}\",\"{task.Title}\",\"{task.Description ?? ""}\",\"{task.Priority}\",\"{task.IsCompleted}\",\"{task.DueDate?.ToString("yyyy-MM-dd") ?? ""}\",\"{task.CreatedAt:yyyy-MM-dd HH:mm:ss}\",\"{task.CompletedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? ""}\"");
+                }
+
+                var bytes = System.Text.Encoding.UTF8.GetBytes(csv.ToString());
+                return File(bytes, "text/csv", $"tasks_export_{DateTime.Now:yyyyMMdd_HHmmss}.csv");
+            }
+            else // JSON
+            {
+                var jsonTasks = tasks.Select(t => new
+                {
+                    t.Id,
+                    t.Title,
+                    t.Description,
+                    Priority = t.Priority.ToString(),
+                    t.IsCompleted,
+                    DueDate = t.DueDate?.ToString("yyyy-MM-dd"),
+                    CreatedAt = t.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss"),
+                    CompletedAt = t.CompletedAt?.ToString("yyyy-MM-dd HH:mm:ss")
+                }).ToList();
+
+                var json = System.Text.Json.JsonSerializer.Serialize(jsonTasks, new System.Text.Json.JsonSerializerOptions 
+                { 
+                    WriteIndented = true 
+                });
+
+                var bytes = System.Text.Encoding.UTF8.GetBytes(json);
+                return File(bytes, "application/json", $"tasks_export_{DateTime.Now:yyyyMMdd_HHmmss}.json");
+            }
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Unauthorized();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error exporting tasks");
+            return StatusCode(500, new { message = "An error occurred while exporting tasks" });
+        }
+    }
+
+    [HttpPost("import")]
+    public async Task<IActionResult> ImportTasks([FromBody] ImportTasksRequest request)
+    {
+        try
+        {
+            var userId = GetUserId();
+            var importedCount = 0;
+            var skippedCount = 0;
+            var errors = new List<string>();
+
+            // Get existing task IDs for this user to check for duplicates
+            var existingIds = (await _context.Tasks
+                .Where(t => t.UserId == userId)
+                .Select(t => t.Id)
+                .ToListAsync())
+                .ToHashSet();
+
+            foreach (var taskData in request.Tasks)
+            {
+                try
+                {
+                    if (string.IsNullOrWhiteSpace(taskData.Title))
+                    {
+                        errors.Add($"Skipped task: Title is required");
+                        continue;
+                    }
+
+                    // Check for duplicates by Id
+                    if (taskData.Id.HasValue && existingIds.Contains(taskData.Id.Value))
+                    {
+                        skippedCount++;
+                        _logger.LogInformation("Skipped duplicate task with Id: {Id} - {Title}", taskData.Id, taskData.Title);
+                        continue;
+                    }
+
+                    var taskId = taskData.Id ?? Guid.NewGuid();
+                    var task = new TodoTask
+                    {
+                        Id = taskId,
+                        UserId = userId,
+                        Title = taskData.Title,
+                        Description = taskData.Description,
+                        Priority = taskData.Priority,
+                        IsCompleted = taskData.IsCompleted ?? false,
+                        DueDate = taskData.DueDate,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    if (task.IsCompleted)
+                    {
+                        task.CompletedAt = DateTime.UtcNow;
+                    }
+
+                    _context.Tasks.Add(task);
+                    existingIds.Add(taskId); // Add to set for subsequent duplicate checks within the same import
+                    importedCount++;
+                }
+                catch (Exception ex)
+                {
+                    errors.Add($"Error importing task '{taskData.Title}': {ex.Message}");
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Imported {Count} tasks, skipped {Skipped} duplicates for user {UserId}", importedCount, skippedCount, userId);
+
+            return Ok(new 
+            { 
+                importedCount,
+                skippedCount,
+                errors = errors.Count > 0 ? errors : null,
+                message = $"Successfully imported {importedCount} task(s), skipped {skippedCount} duplicate(s)"
+            });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Unauthorized();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error importing tasks");
+            return StatusCode(500, new { message = "An error occurred while importing tasks" });
         }
     }
 }

@@ -71,9 +71,14 @@ public class AuthController : ControllerBase
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == request.Username);
 
-            if (user == null || !_passwordHasher.VerifyPassword(request.Password, user.PasswordHash))
+            if (user == null)
             {
-                return Unauthorized(new { message = "Invalid username or password" });
+                return Unauthorized(new { message = "User does not exist" });
+            }
+
+            if (!_passwordHasher.VerifyPassword(request.Password, user.PasswordHash))
+            {
+                return Unauthorized(new { message = "Invalid password" });
             }
 
             var token = _tokenService.GenerateToken(user.Id, user.Username);

@@ -34,7 +34,7 @@ public class UpdateTaskRequest
 
 public class TaskResponse
 {
-    public int Id { get; set; }
+    public Guid Id { get; set; }
     public required string Title { get; set; }
     public string? Description { get; set; }
     public bool IsCompleted { get; set; }
@@ -57,4 +57,22 @@ public class TaskStatistics
     public int CompletedTasks { get; set; }
     public int PendingTasks { get; set; }
     public int OverdueTasks { get; set; }
+}
+
+public class ImportTaskData
+{
+    public Guid? Id { get; set; }
+
+    [Required(ErrorMessage = "Title is required")]
+    public required string Title { get; set; }
+    public string? Description { get; set; }
+    public TaskPriority Priority { get; set; } = TaskPriority.Medium;
+    public bool? IsCompleted { get; set; }
+    public DateTime? DueDate { get; set; }
+}
+
+public class ImportTasksRequest
+{
+    [Required]
+    public required List<ImportTaskData> Tasks { get; set; }
 }

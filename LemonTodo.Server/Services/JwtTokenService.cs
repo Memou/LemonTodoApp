@@ -7,8 +7,8 @@ namespace LemonTodo.Server.Services;
 
 public interface IJwtTokenService
 {
-    string GenerateToken(int userId, string username);
-    int? ValidateToken(string token);
+    string GenerateToken(Guid userId, string username);
+    Guid? ValidateToken(string token);
 }
 
 public class JwtTokenService : IJwtTokenService
@@ -20,7 +20,7 @@ public class JwtTokenService : IJwtTokenService
         _configuration = configuration;
     }
 
-    public string GenerateToken(int userId, string username)
+    public string GenerateToken(Guid userId, string username)
     {
         var key = Encoding.ASCII.GetBytes(GetJwtSecret());
         var tokenHandler = new JwtSecurityTokenHandler();
@@ -44,7 +44,7 @@ public class JwtTokenService : IJwtTokenService
         return tokenHandler.WriteToken(token);
     }
 
-    public int? ValidateToken(string token)
+    public Guid? ValidateToken(string token)
     {
         try
         {
@@ -66,7 +66,7 @@ public class JwtTokenService : IJwtTokenService
             var jwtToken = (JwtSecurityToken)validatedToken;
             var userIdClaim = jwtToken.Claims.First(x => x.Type == ClaimTypes.NameIdentifier).Value;
 
-            return int.Parse(userIdClaim);
+            return Guid.Parse(userIdClaim);
         }
         catch
         {

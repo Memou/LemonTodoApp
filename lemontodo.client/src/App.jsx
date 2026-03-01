@@ -30,7 +30,8 @@ import {
     CircularProgress,
     Stack,
     Paper,
-    Divider
+    Divider,
+    Menu
 } from '@mui/material';
 import {
     Add as AddIcon,
@@ -39,7 +40,9 @@ import {
     CalendarToday as CalendarIcon,
     ArrowUpward as ArrowUpwardIcon,
     ArrowDownward as ArrowDownwardIcon,
-    Edit as EditIcon
+    Edit as EditIcon,
+    FileDownload as FileDownloadIcon,
+    FileUpload as FileUploadIcon
 } from '@mui/icons-material';
 
 import { authApi, tasksApi } from './services/api';
@@ -120,6 +123,7 @@ function App() {
     const [deleteModal, setDeleteModal] = useState({ isOpen: false, taskId: null, taskTitle: '' });
     const [createModal, setCreateModal] = useState(false);
     const [editModal, setEditModal] = useState({ isOpen: false, task: null });
+    const [exportMenuAnchor, setExportMenuAnchor] = useState(null);
 
     useEffect(() => {
         const token = storage.getToken();
@@ -133,13 +137,13 @@ function App() {
         }
     }, []);
 
-    const validateAndLoadTasks = async (token, username) => {
+    const validateAndLoadTasks = async (token) => {
         try {
             const filters = { sortBy: 'createdAt', descending: true };
             const data = await tasksApi.getAll(token, filters);
             setTasks(data.tasks);
             setStatistics(data.statistics);
-        } catch (error) {
+        } catch {
             // Token is invalid or expired, clear auth and show login
             storage.clearAuth();
             setUser(null);
@@ -173,6 +177,7 @@ function App() {
 
     const handleAuth = async (e) => {
         e.preventDefault();
+        if (isAuthLoading) return; // Prevent double-click
         setError('');
         setIsAuthLoading(true);
         try {
@@ -184,8 +189,12 @@ function App() {
             await loadTasks(data.token);
         } catch (error) {
             setError(error.message);
+            setIsAuthLoading(false); // Reset on error
         } finally {
-            setIsAuthLoading(false);
+            // Don't reset here if successful, let the redirect happen
+            if (!user) {
+                setIsAuthLoading(false);
+            }
         }
     };
 
@@ -291,6 +300,33 @@ function App() {
         setError('');
     };
 
+    const handleExportTasks = async (format) => {
+        try {
+            await tasksApi.exportTasks(user.token, format);
+        } catch (error) {
+            if (error.message === 'UNAUTHORIZED') handleLogout();
+            else setError(`Failed to export tasks: ${error.message}`);
+        }
+    };
+
+    const handleImportTasks = async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        try {
+            const result = await tasksApi.importTasks(user.token, file);
+            await loadTasks(user.token);
+            setError(''); // Clear any errors
+            // Show success message (you could add a success state if you want)
+            console.log(result.message);
+        } catch (error) {
+            if (error.message === 'UNAUTHORIZED') handleLogout();
+            else setError(`Failed to import tasks: ${error.message}`);
+        }
+        // Reset file input
+        event.target.value = '';
+    };
+
     if (isLoading) {
         return (
             <ThemeProvider theme={theme}>
@@ -394,7 +430,67 @@ function App() {
                             taskflow
                         </Typography>
                         <Box sx={{ flexGrow: 1 }} />
-                        <Stack direction="row" spacing={3} alignItems="center">
+                        <Stack direction="row" spacing={2} alignItems="center">
+                            <Button
+                                variant="outlined"
+                                size="small"
+                                startIcon={<FileDownloadIcon />}
+                                onClick={(e) => setExportMenuAnchor(e.currentTarget)}
+                                disabled={tasks.length === 0}
+                                sx={{ 
+                                    display: { xs: 'none', md: 'flex' },
+                                    borderColor: 'divider',
+                                    color: 'text.primary',
+                                    '&:hover': { borderColor: 'text.primary' },
+                                    '&.Mui-disabled': {
+                                        borderColor: 'divider',
+                                        color: 'text.disabled'
+                                    }
+                                }}
+                            >
+                                Export
+                            </Button>
+                            <Menu
+                                anchorEl={exportMenuAnchor}
+                                open={Boolean(exportMenuAnchor)}
+                                onClose={() => setExportMenuAnchor(null)}
+                                anchorOrigin={{
+                                    vertical: 'bottom',
+                                    horizontal: 'right',
+                                }}
+                                transformOrigin={{
+                                    vertical: 'top',
+                                    horizontal: 'right',
+                                }}
+                            >
+                                <MenuItem onClick={() => handleExportTasks('json')}>
+                                    Export as JSON
+                                </MenuItem>
+                                <MenuItem onClick={() => handleExportTasks('csv')}>
+                                    Export as CSV
+                                </MenuItem>
+                            </Menu>
+                            <Button
+                                variant="outlined"
+                                size="small"
+                                startIcon={<FileUploadIcon />}
+                                component="label"
+                                sx={{ 
+                                    display: { xs: 'none', md: 'flex' },
+                                    borderColor: 'divider',
+                                    color: 'text.primary',
+                                    '&:hover': { borderColor: 'text.primary' }
+                                }}
+                            >
+                                Import
+                                <input
+                                    type="file"
+                                    hidden
+                                    accept=".json,.csv"
+                                    onChange={handleImportTasks}
+                                />
+                            </Button>
+                            <Divider orientation="vertical" flexItem sx={{ mx: 1, display: { xs: 'none', md: 'block' } }} />
                             <Typography 
                                 variant="body1" 
                                 sx={{ 
@@ -492,7 +588,7 @@ function App() {
                                     <Box key={task.id}>
                                         {index > 0 && <Divider sx={{ my: 1.5 }} />}
                                         <ListItem 
-                                            alignItems="flex-start"
+                                            alignItems="center"
                                             onClick={() => openEditModal(task)}
                                             sx={{ 
                                                 py: 1.5, 
@@ -531,7 +627,7 @@ function App() {
                                                 </Stack>
                                             </Box>
 
-                                            <Stack direction="row" spacing={0.5} sx={{ flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+                                            <Stack direction="row" spacing={0.5} sx={{ flexShrink: 0, alignSelf: 'center' }} onClick={(e) => e.stopPropagation()}>
                                                 {task.isCompleted ? (
                                                     <Button 
                                                         size="small" 
