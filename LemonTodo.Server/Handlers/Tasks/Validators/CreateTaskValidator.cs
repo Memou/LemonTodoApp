@@ -1,4 +1,5 @@
 using LemonTodo.Server.DTOs;
+using LemonTodo.Server.Models;
 
 namespace LemonTodo.Server.Handlers.Tasks.Validators;
 
@@ -16,6 +17,17 @@ public class CreateTaskValidator
         if (request.Title?.Length > 200)
         {
             errors.Add("Title cannot exceed 200 characters");
+        }
+
+        if (request.Description?.Length > 1000)
+        {
+            errors.Add("Description cannot exceed 1000 characters");
+        }
+
+        // Validate priority enum is within valid range
+        if (!Enum.IsDefined(typeof(TaskPriority), request.Priority))
+        {
+            errors.Add("Invalid priority value");
         }
 
         if (request.DueDate.HasValue && request.DueDate.Value.Date < DateTime.UtcNow.Date)

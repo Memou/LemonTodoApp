@@ -22,6 +22,17 @@ public class UpdateTaskValidator
             }
         }
 
+        if (request.Description != null && request.Description.Length > 1000)
+        {
+            errors.Add("Description cannot exceed 1000 characters");
+        }
+
+        // Validate priority enum if provided
+        if (request.Priority.HasValue && !Enum.IsDefined(typeof(TaskPriority), request.Priority.Value))
+        {
+            errors.Add("Invalid priority value");
+        }
+
         if (request.DueDate.HasValue)
         {
             // Check if we're setting a past due date for an incomplete task

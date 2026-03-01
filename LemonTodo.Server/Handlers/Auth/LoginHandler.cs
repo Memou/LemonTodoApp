@@ -37,16 +37,11 @@ public class LoginHandler
 
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == request.Username);
 
-        if (user == null)
+        // Security: Combine user not found and invalid password into single error to prevent user enumeration
+        if (user == null || !_passwordHasher.VerifyPassword(request.Password, user.PasswordHash))
         {
-            _logger.LogWarning("Login failed: User {Username} does not exist", request.Username);
-            return (null, LoginError.UserNotFound);
-        }
-
-        if (!_passwordHasher.VerifyPassword(request.Password, user.PasswordHash))
-        {
-            _logger.LogWarning("Login failed: Invalid password for user {Username}", request.Username);
-            return (null, LoginError.InvalidPassword);
+            _logger.LogWarning("Login failed for username: {Username}", request.Username);
+            return (null, LoginError.InvalidCredentials);
         }
 
         var token = _tokenService.GenerateToken(user.Id, user.Username);
@@ -64,6 +59,5 @@ public class LoginHandler
 public enum LoginError
 {
     ValidationFailed,
-    UserNotFound,
-    InvalidPassword
+    InvalidCredentials  // Combines UserNotFound and InvalidPassword to prevent user enumeration
 }

@@ -68,7 +68,7 @@ public class LoginHandlerTests
     }
 
     [Fact]
-    public async Task HandleAsync_UserNotFound_ReturnsUserNotFoundError()
+    public async Task HandleAsync_UserNotFound_ReturnsInvalidCredentialsError()
     {
         // Arrange
         var request = new LoginRequest
@@ -82,11 +82,11 @@ public class LoginHandlerTests
 
         // Assert
         response.Should().BeNull();
-        error.Should().Be(LoginError.UserNotFound);
+        error.Should().Be(LoginError.InvalidCredentials);
     }
 
     [Fact]
-    public async Task HandleAsync_InvalidPassword_ReturnsInvalidPasswordError()
+    public async Task HandleAsync_InvalidPassword_ReturnsInvalidCredentialsError()
     {
         // Arrange
         var user = new User
@@ -112,7 +112,7 @@ public class LoginHandlerTests
 
         // Assert
         response.Should().BeNull();
-        error.Should().Be(LoginError.InvalidPassword);
+        error.Should().Be(LoginError.InvalidCredentials);
     }
 
     [Fact]
@@ -157,6 +157,6 @@ public class LoginHandlerTests
 
         // Assert
         response.Should().BeNull();
-        error.Should().Be(LoginError.UserNotFound);
+        error.Should().Be(LoginError.InvalidCredentials);
     }
 }

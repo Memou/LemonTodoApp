@@ -10,7 +10,7 @@ public class TodoTask
     public DateTime? DueDate { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? CompletedAt { get; set; }
-    public Guid UserId { get; set; }
+    public Guid UserId { get; set; } //Entity framework needs this for better querying and create shadow one if deleted.
     public User User { get; set; } = null!;
 }
 

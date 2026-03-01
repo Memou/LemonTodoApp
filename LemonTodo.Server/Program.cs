@@ -32,9 +32,16 @@ builder.Services.AddScoped<LoginHandler>();
 var jwtSecret = builder.Configuration["Jwt:Secret"];
 if (string.IsNullOrEmpty(jwtSecret))
 {
+    if (builder.Environment.IsProduction())
+    {
+        throw new InvalidOperationException(
+            "JWT Secret is required in production. Set via environment variable 'Jwt__Secret' or User Secrets.");
+    }
+
     jwtSecret = GenerateSecureSecret();
     builder.Configuration["Jwt:Secret"] = jwtSecret;
-    Console.WriteLine("Generated JWT Secret for this session (not for production use)");
+    Console.WriteLine("⚠️  WARNING: Using temporary JWT secret (not persistent)");
+    Console.WriteLine("   For persistent tokens, run: dotnet user-secrets set \"Jwt:Secret\" \"your-secret\" --project LemonTodo.Server");
 }
 
 builder.Services.AddAuthentication(options =>
@@ -60,17 +67,24 @@ builder.Services.AddAuthentication(options =>
     {
         OnAuthenticationFailed = context =>
         {
-            Console.WriteLine($"Authentication failed: {context.Exception.Message}");
+            // Security: Don't log exception details - may contain sensitive token information
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogWarning("Authentication failed for request from {IP}", 
+                context.HttpContext.Connection.RemoteIpAddress);
             return Task.CompletedTask;
         },
         OnTokenValidated = context =>
         {
-            Console.WriteLine("Token validated successfully");
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            var userId = context.Principal?.FindFirst("sub")?.Value;
+            logger.LogDebug("Token validated for user {UserId}", userId);
             return Task.CompletedTask;
         },
         OnChallenge = context =>
         {
-            Console.WriteLine($"OnChallenge error: {context.Error}, {context.ErrorDescription}");
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            // Security: Only log error type, not description which may contain sensitive info
+            logger.LogWarning("Authentication challenge: {Error}", context.Error);
             return Task.CompletedTask;
         }
     };
