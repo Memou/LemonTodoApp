@@ -99,7 +99,8 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Use global exception handler
+app.UseSecurityHeaders();
+
 app.UseExceptionHandler();
 
 app.UseDefaultFiles();
@@ -117,7 +118,6 @@ app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Map Minimal API endpoints
 app.MapAuthEndpoints();
 app.MapTaskEndpoints();
 
