@@ -23,7 +23,7 @@ It should download frontend dependencies for a minute or two and start the serve
 
 For dev environment, it has an optional two step secret management, (at this point just for JWT secret):
 
-It will look for a .net User Secret locally.This will allow the user to be logged in, while restarting the app.
+It will look for a .net User Secret locally.This will allow the user to stay logged in, while restarting the app.
 
 If that local secret lookup doesnt work out it will create a temporary JWT secret in memory.
 
