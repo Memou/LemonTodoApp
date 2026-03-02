@@ -60,23 +60,10 @@ public static class TaskEndpoints
         string? sortBy = "createdAt",
         bool descending = false)
     {
-        try
-        {
-            var userId = GetUserId(httpContext);
-            logger.LogInformation("Getting tasks for user {UserId}", userId);
-            var response = await handler.HandleAsync(userId, isCompleted, priority, sortBy, descending);
-            return Results.Ok(response);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            logger.LogWarning(ex, "Unauthorized access attempt");
-            return Results.Unauthorized();
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error retrieving tasks");
-            return Results.Problem("An error occurred while retrieving tasks");
-        }
+        var userId = GetUserId(httpContext);
+        logger.LogInformation("Getting tasks for user {UserId}", userId);
+        var response = await handler.HandleAsync(userId, isCompleted, priority, sortBy, descending);
+        return Results.Ok(response);
     }
 
     private static async Task<IResult> GetTask(
@@ -85,44 +72,31 @@ public static class TaskEndpoints
         [FromServices] ApplicationDbContext context,
         Guid id)
     {
-        try
+        var userId = GetUserId(httpContext);
+        logger.LogInformation("Getting task {TaskId} for user {UserId}", id, userId);
+
+        var task = await context.Tasks
+            .FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId);
+
+        if (task == null)
         {
-            var userId = GetUserId(httpContext);
-            logger.LogInformation("Getting task {TaskId} for user {UserId}", id, userId);
-
-            var task = await context.Tasks
-                .FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId);
-
-            if (task == null)
-            {
-                logger.LogWarning("Task {TaskId} not found for user {UserId}", id, userId);
-                return Results.NotFound(new { message = "Task not found" });
-            }
-
-            var response = new TaskResponse
-            {
-                Id = task.Id,
-                Title = task.Title,
-                Description = task.Description,
-                IsCompleted = task.IsCompleted,
-                Priority = task.Priority,
-                DueDate = task.DueDate,
-                CreatedAt = task.CreatedAt,
-                CompletedAt = task.CompletedAt
-            };
-
-            return Results.Ok(response);
+            logger.LogWarning("Task {TaskId} not found for user {UserId}", id, userId);
+            return Results.NotFound(new { message = "Task not found" });
         }
-        catch (UnauthorizedAccessException ex)
+
+        var response = new TaskResponse
         {
-            logger.LogWarning(ex, "Unauthorized access attempt for task {TaskId}", id);
-            return Results.Unauthorized();
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error retrieving task {TaskId}", id);
-            return Results.Problem("An error occurred while retrieving the task");
-        }
+            Id = task.Id,
+            Title = task.Title,
+            Description = task.Description,
+            IsCompleted = task.IsCompleted,
+            Priority = task.Priority,
+            DueDate = task.DueDate,
+            CreatedAt = task.CreatedAt,
+            CompletedAt = task.CompletedAt
+        };
+
+        return Results.Ok(response);
     }
 
     private static async Task<IResult> CreateTask(
@@ -131,29 +105,11 @@ public static class TaskEndpoints
         [FromServices] ILogger<CreateTaskHandler> logger,
         [FromBody] CreateTaskRequest request)
     {
-        try
-        {
-            var userId = GetUserId(httpContext);
-            logger.LogInformation("Creating task for user {UserId}", userId);
-            var response = await handler.HandleAsync(userId, request);
-            logger.LogInformation("Task {TaskId} created successfully", response.Id);
-            return Results.Created($"/api/tasks/{response.Id}", response);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            logger.LogWarning(ex, "Unauthorized task creation attempt");
-            return Results.Unauthorized();
-        }
-        catch (InvalidOperationException ex)
-        {
-            logger.LogWarning(ex, "Invalid operation while creating task");
-            return Results.BadRequest(new { message = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error creating task");
-            return Results.Problem("An error occurred while creating the task");
-        }
+        var userId = GetUserId(httpContext);
+        logger.LogInformation("Creating task for user {UserId}", userId);
+        var response = await handler.HandleAsync(userId, request);
+        logger.LogInformation("Task {TaskId} created successfully", response.Id);
+        return Results.Created($"/api/tasks/{response.Id}", response);
     }
 
     private static async Task<IResult> UpdateTask(
@@ -163,36 +119,18 @@ public static class TaskEndpoints
         Guid id,
         [FromBody] UpdateTaskRequest request)
     {
-        try
-        {
-            var userId = GetUserId(httpContext);
-            logger.LogInformation("Updating task {TaskId} for user {UserId}", id, userId);
-            var response = await handler.HandleAsync(userId, id, request);
+        var userId = GetUserId(httpContext);
+        logger.LogInformation("Updating task {TaskId} for user {UserId}", id, userId);
+        var response = await handler.HandleAsync(userId, id, request);
 
-            if (response == null)
-            {
-                logger.LogWarning("Task {TaskId} not found for user {UserId}", id, userId);
-                return Results.NotFound(new { message = "Task not found" });
-            }
+        if (response == null)
+        {
+            logger.LogWarning("Task {TaskId} not found for user {UserId}", id, userId);
+            return Results.NotFound(new { message = "Task not found" });
+        }
 
-            logger.LogInformation("Task {TaskId} updated successfully", id);
-            return Results.Ok(response);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            logger.LogWarning(ex, "Unauthorized update attempt for task {TaskId}", id);
-            return Results.Unauthorized();
-        }
-        catch (InvalidOperationException ex)
-        {
-            logger.LogWarning(ex, "Invalid operation while updating task {TaskId}", id);
-            return Results.BadRequest(new { message = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error updating task {TaskId}", id);
-            return Results.Problem("An error occurred while updating the task");
-        }
+        logger.LogInformation("Task {TaskId} updated successfully", id);
+        return Results.Ok(response);
     }
 
     private static async Task<IResult> DeleteTask(
@@ -201,31 +139,18 @@ public static class TaskEndpoints
         [FromServices] ILogger<DeleteTaskHandler> logger,
         Guid id)
     {
-        try
-        {
-            var userId = GetUserId(httpContext);
-            logger.LogInformation("Deleting task {TaskId} for user {UserId}", id, userId);
-            var deleted = await handler.HandleAsync(userId, id);
+        var userId = GetUserId(httpContext);
+        logger.LogInformation("Deleting task {TaskId} for user {UserId}", id, userId);
+        var deleted = await handler.HandleAsync(userId, id);
 
-            if (!deleted)
-            {
-                logger.LogWarning("Task {TaskId} not found for user {UserId}", id, userId);
-                return Results.NotFound(new { message = "Task not found" });
-            }
+        if (!deleted)
+        {
+            logger.LogWarning("Task {TaskId} not found for user {UserId}", id, userId);
+            return Results.NotFound(new { message = "Task not found" });
+        }
 
-            logger.LogInformation("Task {TaskId} deleted successfully", id);
-            return Results.NoContent();
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            logger.LogWarning(ex, "Unauthorized delete attempt for task {TaskId}", id);
-            return Results.Unauthorized();
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error deleting task {TaskId}", id);
-            return Results.Problem("An error occurred while deleting the task");
-        }
+        logger.LogInformation("Task {TaskId} deleted successfully", id);
+        return Results.NoContent();
     }
 
     private static async Task<IResult> BulkDeleteTasks(
@@ -234,37 +159,24 @@ public static class TaskEndpoints
         [FromServices] ILogger<DeleteTaskHandler> logger,
         [FromBody] Guid[] taskIds)
     {
-        try
+        var userId = GetUserId(httpContext);
+        logger.LogInformation("Bulk deleting {Count} tasks for user {UserId}", taskIds.Length, userId);
+
+        var tasks = await context.Tasks
+            .Where(t => taskIds.Contains(t.Id) && t.UserId == userId)
+            .ToListAsync();
+
+        if (tasks.Count == 0)
         {
-            var userId = GetUserId(httpContext);
-            logger.LogInformation("Bulk deleting {Count} tasks for user {UserId}", taskIds.Length, userId);
-
-            var tasks = await context.Tasks
-                .Where(t => taskIds.Contains(t.Id) && t.UserId == userId)
-                .ToListAsync();
-
-            if (tasks.Count == 0)
-            {
-                logger.LogWarning("No tasks found for bulk delete for user {UserId}", userId);
-                return Results.NotFound(new { message = "No tasks found" });
-            }
-
-            context.Tasks.RemoveRange(tasks);
-            await context.SaveChangesAsync();
-
-            logger.LogInformation("Bulk deleted {Count} tasks for user {UserId}", tasks.Count, userId);
-            return Results.Ok(new { deletedCount = tasks.Count });
+            logger.LogWarning("No tasks found for bulk delete for user {UserId}", userId);
+            return Results.NotFound(new { message = "No tasks found" });
         }
-        catch (UnauthorizedAccessException ex)
-        {
-            logger.LogWarning(ex, "Unauthorized bulk delete attempt");
-            return Results.Unauthorized();
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error bulk deleting tasks");
-            return Results.Problem("An error occurred while deleting tasks");
-        }
+
+        context.Tasks.RemoveRange(tasks);
+        await context.SaveChangesAsync();
+
+        logger.LogInformation("Bulk deleted {Count} tasks for user {UserId}", tasks.Count, userId);
+        return Results.Ok(new { deletedCount = tasks.Count });
     }
 
     private static async Task<IResult> ExportTasks(
@@ -273,24 +185,11 @@ public static class TaskEndpoints
         [FromServices] ILogger<ExportTasksHandler> logger,
         string format = "json")
     {
-        try
-        {
-            var userId = GetUserId(httpContext);
-            logger.LogInformation("Exporting tasks for user {UserId} in {Format} format", userId, format);
-            var result = await handler.HandleAsync(userId, format);
-            logger.LogInformation("Tasks exported successfully for user {UserId}", userId);
-            return Results.File(result.Content, result.ContentType, result.FileName);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            logger.LogWarning(ex, "Unauthorized export attempt");
-            return Results.Unauthorized();
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error exporting tasks");
-            return Results.Problem("An error occurred while exporting tasks");
-        }
+        var userId = GetUserId(httpContext);
+        logger.LogInformation("Exporting tasks for user {UserId} in {Format} format", userId, format);
+        var result = await handler.HandleAsync(userId, format);
+        logger.LogInformation("Tasks exported successfully for user {UserId}", userId);
+        return Results.File(result.Content, result.ContentType, result.FileName);
     }
 
     private static async Task<IResult> ImportTasks(
@@ -299,38 +198,25 @@ public static class TaskEndpoints
         [FromServices] ILogger<ImportTasksHandler> logger,
         [FromBody] ImportTasksRequest? request)
     {
-        try
+        if (request == null || request.Tasks == null || request.Tasks.Count == 0)
         {
-            if (request == null || request.Tasks == null || request.Tasks.Count == 0)
-            {
-                logger.LogWarning("Import request is null or empty");
-                return Results.BadRequest(new { message = "No tasks provided for import" });
-            }
+            logger.LogWarning("Import request is null or empty");
+            return Results.BadRequest(new { message = "No tasks provided for import" });
+        }
 
-            var userId = GetUserId(httpContext);
-            logger.LogInformation("Importing {Count} tasks for user {UserId}", request.Tasks.Count, userId);
-            var result = await handler.HandleAsync(userId, request);
-            logger.LogInformation("Import completed: {Imported} imported, {Skipped} skipped for user {UserId}", 
-                result.ImportedCount, result.SkippedCount, userId);
+        var userId = GetUserId(httpContext);
+        logger.LogInformation("Importing {Count} tasks for user {UserId}", request.Tasks.Count, userId);
+        var result = await handler.HandleAsync(userId, request);
+        logger.LogInformation("Import completed: {Imported} imported, {Skipped} skipped for user {UserId}", 
+            result.ImportedCount, result.SkippedCount, userId);
 
-            return Results.Ok(new 
-            { 
-                result.ImportedCount,
-                result.SkippedCount,
-                result.Errors,
-                result.Message
-            });
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            logger.LogWarning(ex, "Unauthorized import attempt");
-            return Results.Unauthorized();
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error importing tasks");
-            return Results.Problem("An error occurred while importing tasks");
-        }
+        return Results.Ok(new 
+        { 
+            result.ImportedCount,
+            result.SkippedCount,
+            result.Errors,
+            result.Message
+        });
     }
 
     private static Guid GetUserId(HttpContext httpContext)

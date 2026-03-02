@@ -1,5 +1,6 @@
 using LemonTodo.Server;
 using LemonTodo.Server.Endpoints;
+using LemonTodo.Server.Middleware;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -9,6 +10,10 @@ var builder = WebApplication.CreateBuilder(args);
 // Register application services and handlers
 builder.Services.AddApplicationServices();
 builder.Services.AddHandlers();
+
+// Add global exception handler
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 
 var jwtSecret = builder.Configuration["Jwt:Secret"];
 if (string.IsNullOrEmpty(jwtSecret))
@@ -93,6 +98,9 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+// Use global exception handler
+app.UseExceptionHandler();
 
 app.UseDefaultFiles();
 app.MapStaticAssets();

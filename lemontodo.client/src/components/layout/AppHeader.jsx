@@ -20,7 +20,6 @@ import {
 export function AppHeader({ username, onLogout, onExport, onImport, tasksCount }) {
     const [exportMenuAnchor, setExportMenuAnchor] = useState(null);
     const [mobileMenuAnchor, setMobileMenuAnchor] = useState(null);
-    const [showImportInput, setShowImportInput] = useState(false);
 
     const handleExport = (format) => {
         onExport(format);
@@ -34,7 +33,6 @@ export function AppHeader({ username, onLogout, onExport, onImport, tasksCount }
 
     const handleMobileImportClick = () => {
         setMobileMenuAnchor(null);
-        setShowImportInput(true);
         setTimeout(() => {
             document.getElementById('mobile-import-input')?.click();
         }, 100);
@@ -101,10 +99,7 @@ export function AppHeader({ username, onLogout, onExport, onImport, tasksCount }
                         type="file"
                         hidden
                         accept=".json,.csv"
-                        onChange={(e) => {
-                            onImport(e);
-                            setShowImportInput(false);
-                        }}
+                        onChange={onImport}
                     />
 
                     {/* Desktop Export Button */}

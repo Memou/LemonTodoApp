@@ -100,8 +100,6 @@ describe('ErrorBoundary', () => {
     });
 
     it('resets error state when "Try Again" button is clicked', async () => {
-        const user = userEvent.setup();
-
         render(
             <ErrorBoundary>
                 <ThrowError shouldThrow={true} />

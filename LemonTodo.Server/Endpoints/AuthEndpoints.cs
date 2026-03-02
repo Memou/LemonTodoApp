@@ -29,24 +29,16 @@ public static class AuthEndpoints
         [FromServices] ILogger<RegisterHandler> logger,
         [FromBody] RegisterRequest request)
     {
-        try
+        logger.LogInformation("Registration attempt for username: {Username}", request.Username);
+
+        var (response, error) = await handler.HandleAsync(request);
+
+        if (response == null)
         {
-            logger.LogInformation("Registration attempt for username: {Username}", request.Username);
-
-            var (response, error) = await handler.HandleAsync(request);
-
-            if (response == null)
-            {
-                return Results.BadRequest(new { message = error ?? "Registration failed" });
-            }
-
-            return Results.Ok(response);
+            return Results.BadRequest(new { message = error ?? "Registration failed" });
         }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error during user registration");
-            return Results.Problem("An error occurred during registration");
-        }
+
+        return Results.Ok(response);
     }
 
     private static async Task<IResult> Login(
@@ -54,24 +46,16 @@ public static class AuthEndpoints
         [FromServices] ILogger<LoginHandler> logger,
         [FromBody] LoginRequest request)
     {
-        try
+        logger.LogInformation("Login attempt for username: {Username}", request.Username);
+
+        var (response, error) = await handler.HandleAsync(request);
+
+        if (response == null)
         {
-            logger.LogInformation("Login attempt for username: {Username}", request.Username);
-
-            var (response, error) = await handler.HandleAsync(request);
-
-            if (response == null)
-            {
-                // Security: Same message for both user not found and invalid password
-                return Results.Json(new { message = "Invalid username or password" }, statusCode: 401);
-            }
-
-            return Results.Ok(response);
+            // Security: Same message for both user not found and invalid password
+            return Results.Json(new { message = "Invalid username or password" }, statusCode: 401);
         }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error during user login");
-            return Results.Problem("An error occurred during login");
-        }
+
+        return Results.Ok(response);
     }
 }

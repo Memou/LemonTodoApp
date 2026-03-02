@@ -75,7 +75,7 @@ function App() {
     const handleEditTask = async (taskData) => {
         const data = {
             title: taskData.title,
-            description: taskData.description || null,
+            description: taskData.description || "", // Send empty string instead of null to allow clearing
             priority: parseInt(taskData.priority),
             dueDate: taskData.dueDate || null
         };

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
     Dialog,
     DialogTitle,
@@ -22,6 +22,20 @@ export function CreateTaskModal({ open, onClose, onSubmit, error }) {
         dueDate: getTodayDate()
     });
 
+    const titleInputRef = useRef(null);
+    const dateInputRef = useRef(null);
+
+    // Auto-focus title field when modal opens
+    useEffect(() => {
+        if (open) {
+            // Delay to ensure dialog is fully rendered
+            const timer = setTimeout(() => {
+                titleInputRef.current?.focus();
+            }, 100);
+            return () => clearTimeout(timer);
+        }
+    }, [open]);
+
     const handleSubmit = (e) => {
         e.preventDefault();
         onSubmit(taskForm);
@@ -30,6 +44,12 @@ export function CreateTaskModal({ open, onClose, onSubmit, error }) {
     const handleClose = () => {
         setTaskForm({ title: '', description: '', priority: 1, dueDate: getTodayDate() });
         onClose();
+    };
+
+    // Auto-open date picker when date field is focused
+    const handleDateFieldFocus = () => {
+        // Trigger the native date picker to open
+        dateInputRef.current?.showPicker?.();
     };
 
     return (
@@ -46,7 +66,7 @@ export function CreateTaskModal({ open, onClose, onSubmit, error }) {
                         value={taskForm.title} 
                         onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })} 
                         required 
-                        autoFocus 
+                        inputRef={titleInputRef}
                         sx={{ mb: 3, mt: 2 }} 
                     />
                     <TextField 
@@ -77,8 +97,9 @@ export function CreateTaskModal({ open, onClose, onSubmit, error }) {
                         type="date" 
                         value={taskForm.dueDate} 
                         onChange={(e) => setTaskForm({ ...taskForm, dueDate: e.target.value })} 
+                        onFocus={handleDateFieldFocus}
                         InputLabelProps={{ shrink: true }} 
-                        inputProps={{ min: getTodayDate() }}
+                        inputProps={{ min: getTodayDate(), ref: dateInputRef }}
                     />
                 </DialogContent>
                 <DialogActions sx={{ p: 3, pt: 2 }}>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
     Box,
     Typography,
@@ -16,6 +16,15 @@ export function LoginForm({ onLogin, onRegister, error }) {
     const [authMode, setAuthMode] = useState(0);
     const [authForm, setAuthForm] = useState({ username: '', password: '' });
     const [isLoading, setIsLoading] = useState(false);
+    const usernameInputRef = useRef(null);
+
+    // Auto-focus username field on mount and when switching tabs
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            usernameInputRef.current?.focus();
+        }, 100);
+        return () => clearTimeout(timer);
+    }, [authMode]); // Re-focus when switching between Sign In/Sign Up
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -68,10 +77,11 @@ export function LoginForm({ onLogin, onRegister, error }) {
                             value={authForm.username} 
                             onChange={(e) => setAuthForm({ ...authForm, username: e.target.value })} 
                             required 
+                            inputRef={usernameInputRef}
                             inputProps={{ minLength: 3 }} 
                             sx={{ mb: 3 }} 
                         />
-                        <TextField 
+                        <TextField
                             fullWidth 
                             type="password" 
                             label="Password" 

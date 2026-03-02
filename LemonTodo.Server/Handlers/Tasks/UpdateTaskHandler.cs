@@ -39,7 +39,8 @@ public class UpdateTaskHandler
 
         if (request.Description != null)
         {
-            task.Description = request.Description;
+            // Allow clearing description by setting it to null or empty string
+            task.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description;
         }
 
         if (request.IsCompleted.HasValue)
