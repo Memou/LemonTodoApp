@@ -1,33 +1,14 @@
-using System.Text;
-using LemonTodo.Server.Data;
-using LemonTodo.Server.Services;
-using LemonTodo.Server.Handlers.Tasks;
-using LemonTodo.Server.Handlers.Auth;
 using LemonTodo.Server.Endpoints;
+using LemonTodo.Server.Extensions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseInMemoryDatabase("LemonTodoDB"));
-
-// Services
-builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
-builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
-
-// Task Handlers
-builder.Services.AddScoped<GetTasksHandler>();
-builder.Services.AddScoped<CreateTaskHandler>();
-builder.Services.AddScoped<UpdateTaskHandler>();
-builder.Services.AddScoped<DeleteTaskHandler>();
-builder.Services.AddScoped<ImportTasksHandler>();
-builder.Services.AddScoped<ExportTasksHandler>();
-
-// Auth Handlers
-builder.Services.AddScoped<RegisterHandler>();
-builder.Services.AddScoped<LoginHandler>();
+// Register application services and handlers
+builder.Services.AddApplicationServices();
+builder.Services.AddHandlers();
 
 var jwtSecret = builder.Configuration["Jwt:Secret"];
 if (string.IsNullOrEmpty(jwtSecret))
