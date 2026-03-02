@@ -31,7 +31,7 @@ If that doesnt work out it will create a temporary JWT secret in memory.
 
 Optional : You can setup userSecret via this command in windows for local jwt secret storage:
 
-dotnet user-secrets set "Jwt:Secret" "your-secret-value-here" --project LemonTodo.Server
+dotnet user-secrets set "Jwt:Secret" "your-secret-value-here_at_least_15_characthers" --project LemonTodo.Server
 
 
 - **JWT Authentication** with PBKDF2 password hashing (100k iterations)
