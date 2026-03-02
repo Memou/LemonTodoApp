@@ -9,18 +9,35 @@ import {
     Divider,
     Menu,
     MenuItem,
+    IconButton,
 } from '@mui/material';
 import {
     FileDownload as FileDownloadIcon,
     FileUpload as FileUploadIcon,
+    MoreVert as MoreVertIcon,
 } from '@mui/icons-material';
 
 export function AppHeader({ username, onLogout, onExport, onImport, tasksCount }) {
     const [exportMenuAnchor, setExportMenuAnchor] = useState(null);
+    const [mobileMenuAnchor, setMobileMenuAnchor] = useState(null);
+    const [showImportInput, setShowImportInput] = useState(false);
 
     const handleExport = (format) => {
         onExport(format);
         setExportMenuAnchor(null);
+        setMobileMenuAnchor(null);
+    };
+
+    const handleMobileExport = (format) => {
+        handleExport(format);
+    };
+
+    const handleMobileImportClick = () => {
+        setMobileMenuAnchor(null);
+        setShowImportInput(true);
+        setTimeout(() => {
+            document.getElementById('mobile-import-input')?.click();
+        }, 100);
     };
 
     return (
@@ -43,6 +60,54 @@ export function AppHeader({ username, onLogout, onExport, onImport, tasksCount }
                 </Typography>
                 <Box sx={{ flexGrow: 1 }} />
                 <Stack direction="row" spacing={2} alignItems="center">
+                    {/* Mobile Menu Button */}
+                    <IconButton
+                        onClick={(e) => setMobileMenuAnchor(e.currentTarget)}
+                        sx={{ 
+                            display: { xs: 'flex', md: 'none' },
+                            color: 'text.primary'
+                        }}
+                    >
+                        <MoreVertIcon />
+                    </IconButton>
+                    <Menu
+                        anchorEl={mobileMenuAnchor}
+                        open={Boolean(mobileMenuAnchor)}
+                        onClose={() => setMobileMenuAnchor(null)}
+                        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                        slotProps={{
+                            paper: {
+                                elevation: 3
+                            }
+                        }}
+                    >
+                        <MenuItem onClick={() => handleMobileExport('json')} disabled={tasksCount === 0}>
+                            <FileDownloadIcon sx={{ mr: 1, fontSize: '1.2rem' }} />
+                            Export as JSON
+                        </MenuItem>
+                        <MenuItem onClick={() => handleMobileExport('csv')} disabled={tasksCount === 0}>
+                            <FileDownloadIcon sx={{ mr: 1, fontSize: '1.2rem' }} />
+                            Export as CSV
+                        </MenuItem>
+                        <MenuItem onClick={handleMobileImportClick}>
+                            <FileUploadIcon sx={{ mr: 1, fontSize: '1.2rem' }} />
+                            Import
+                        </MenuItem>
+                    </Menu>
+                    {/* Hidden file input for mobile import */}
+                    <input
+                        id="mobile-import-input"
+                        type="file"
+                        hidden
+                        accept=".json,.csv"
+                        onChange={(e) => {
+                            onImport(e);
+                            setShowImportInput(false);
+                        }}
+                    />
+
+                    {/* Desktop Export Button */}
                     <Button
                         variant="outlined"
                         size="small"
@@ -62,16 +127,23 @@ export function AppHeader({ username, onLogout, onExport, onImport, tasksCount }
                     >
                         Export
                     </Button>
+                    {/* Desktop Export Menu */}
                     <Menu
                         anchorEl={exportMenuAnchor}
                         open={Boolean(exportMenuAnchor)}
                         onClose={() => setExportMenuAnchor(null)}
                         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                        slotProps={{
+                            paper: {
+                                elevation: 3
+                            }
+                        }}
                     >
                         <MenuItem onClick={() => handleExport('json')}>Export as JSON</MenuItem>
                         <MenuItem onClick={() => handleExport('csv')}>Export as CSV</MenuItem>
                     </Menu>
+                    {/* Desktop Import Button */}
                     <Button
                         variant="outlined"
                         size="small"

@@ -17,13 +17,20 @@ export const authApi = {
         });
 
         if (!response.ok) {
-            let errorMessage = 'Login failed';
+            let errorMessage = 'Login failed. Please check your credentials and try again.';
             try {
                 const error = await response.json();
-                errorMessage = error.message || errorMessage;
+                // Only use server message if it's user-friendly (doesn't contain status codes or stack traces)
+                if (error.message && !error.message.match(/\d{3}/) && error.message.length < 100) {
+                    errorMessage = error.message;
+                }
             } catch {
-                // JSON parsing failed, use status code
-                errorMessage = `Login failed (${response.status})`;
+                // JSON parsing failed, use generic message
+                if (response.status === 401) {
+                    errorMessage = 'Invalid username or password.';
+                } else if (response.status >= 500) {
+                    errorMessage = 'Server error. Please try again later.';
+                }
             }
             throw new Error(errorMessage);
         }
@@ -39,13 +46,20 @@ export const authApi = {
         });
 
         if (!response.ok) {
-            let errorMessage = 'Registration failed';
+            let errorMessage = 'Registration failed. Please try again.';
             try {
                 const error = await response.json();
-                errorMessage = error.message || errorMessage;
+                // Only use server message if it's user-friendly
+                if (error.message && !error.message.match(/\d{3}/) && error.message.length < 100) {
+                    errorMessage = error.message;
+                }
             } catch {
-                // JSON parsing failed, use status code
-                errorMessage = `Registration failed (${response.status})`;
+                // JSON parsing failed, use generic message
+                if (response.status === 409 || response.status === 400) {
+                    errorMessage = 'Username already exists or invalid input.';
+                } else if (response.status >= 500) {
+                    errorMessage = 'Server error. Please try again later.';
+                }
             }
             throw new Error(errorMessage);
         }
