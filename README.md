@@ -21,9 +21,9 @@ It should download frontend dependencies for a minute or two and start the serve
 
 ## Features
 
-For dev environment, it has an optional two step secret management, at this point for JWT secret:
+For dev environment, it has an optional two step secret management, (at this point just for JWT secret):
 
-It will look for a .net User Secret locally.This will allow the user to be logged in, between stopping and lunching the app.
+It will look for a .net User Secret locally.This will allow the user to be logged in, while restarting the app.
 
 If that local secret lookup doesnt work out it will create a temporary JWT secret in memory.
 
@@ -54,8 +54,6 @@ Its totally optional.
 -Implement health endpoints,application insight for better logging and monitoring.
 
 -Add rate limiter.
-
--Security headers.
 
 
 **Authentication:** Refresh tokens(InMemory database doesn't persist refresh tokens), email verification, password reset, OAuth  
