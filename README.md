@@ -1,392 +1,119 @@
-# 🍋 LemonTodo - Full Stack Task Management Application
+# 🍋 LemonTodo
 
-A production-ready task management application built with .NET 10 and React, demonstrating modern software engineering practices, security, and architectural design.
+Full-stack task management app built with .NET 10 and React 19, demonstrating modern architecture and security practices.
 
-## 📋 Table of Contents
-- [Features](#features)
-- [Technology Stack](#technology-stack)
-- [Architecture](#architecture)
-- [Setup Instructions](#setup-instructions)
-- [API Documentation](#api-documentation)
-- [Security](#security)
-- [Testing](#testing)
-- [Design Decisions](#design-decisions)
-- [Future Enhancements](#future-enhancements)
+## ✨ How To Run
+
+Download or clone the code.
+-Open the solution in visual studio,preferably 2026.
+-Set LemonTodo.Server as the startup project,from top of the IDE at the startup project dropdown.
+-Select https profile from next to that dropdown and run the application (F5 or Ctrl+F5).
+
+It should download frontend dependencies for a minute or two and start the server and client should open up in the browser automatically. 
+
+## 🛠 Tech Stack
+
+**Backend:** .NET 10, ASP.NET Core (Minimal APIs), EF Core (InMemory), JWT, xUnit, Moq  
+**Frontend:** React 19, Vite, Material-UI, Vitest, React Testing Library
 
 ## ✨ Features
 
-### Core Requirements
-- **Authentication**: JWT-based authentication with secure password hashing (PBKDF2)
-- **Task Management**: Full CRUD operations for tasks
-- **Authorization**: Users can only access their own tasks
-- **Data Persistence**: EF Core InMemory database
+- **JWT Authentication** with PBKDF2 password hashing (100k iterations)
+- **Full CRUD** task management with priority levels (Low/Medium/High/Urgent)
+- **Real-time Dashboard** with task statistics and overdue tracking
+- **Advanced Filtering** by status and priority, sorting by multiple criteria
+- **Import/Export** tasks (JSON/CSV formats)
+- **Material-UI** responsive design with smart UX (auto-focus, date picker)
+- **Comprehensive Validation** on client and server with custom validators
+- **Global Error Handling** with user-friendly messages
 
-### Production-Minded Features
-1. **Task Statistics Dashboard**: Real-time metrics showing total, completed, pending, and overdue tasks
-2. **Advanced Filtering & Sorting**: Filter by completion status, priority; Sort by date, priority, due date, or title
-3. **Priority Management**: 4-level priority system (Low, Medium, High, Urgent)
-4. **Due Date Tracking**: Track and highlight overdue tasks
-5. **Bulk Operations**: Delete multiple tasks at once
-6. **Input Validation**: Comprehensive validation on both client and server
-7. **Error Handling**: Graceful error handling with user-friendly messages
-8. **Responsive UI**: Mobile-friendly modern design with centered layout
+## 🚀 Potential Enhancements
 
-## 🛠 Technology Stack
+-Use result pattern at handlers and return more specific error messages.
+-For prod or upper environments use cloud secret vaults or environment variables instead of using user secrets. 
+-Implement health endpoints,application insight for better logging and monitoring.
+-Add rate limiter.
+-Security headers.
 
-### Backend
-- **.NET 10**: Latest .NET framework
-- **ASP.NET Core Web API**: RESTful API
-- **Entity Framework Core**: InMemory database provider
-- **JWT Authentication**: Secure token-based auth
-- **xUnit**: Unit testing framework
-- **Moq**: Mocking framework for tests
 
-### Frontend
-- **React 19**: Modern React with hooks
-- **Vite**: Fast build tool and dev server
-- **CSS3**: Modern styling with CSS Grid and Flexbox
+**Authentication:** Refresh tokens(InMemory database doesn't persist refresh tokens), email verification, password reset, OAuth  
+**Scalability:** Pagination, indexing, CDN
+
 
 ## 🏗 Architecture
 
-### Backend Architecture
-```
-LemonTodo.Server/
-├── Controllers/          # API endpoints
-│   ├── AuthController    # Authentication endpoints
-│   └── TasksController   # Task management endpoints
-├── Models/               # Domain models
-│   ├── User              # User entity
-│   └── TodoTask          # Task entity
-├── DTOs/                 # Data Transfer Objects
-│   ├── AuthDTOs          # Auth request/response models
-│   └── TaskDTOs          # Task request/response models
-├── Data/                 # Database context
-│   └── ApplicationDbContext
-├── Services/             # Business logic
-│   ├── JwtTokenService   # JWT generation/validation
-│   └── PasswordHasher    # Password hashing/verification
-└── Program.cs            # Application configuration
-```
+**Backend:** Minimal APIs with Handler pattern, DTOs, DI, Middleware pipeline  
+**Frontend:** React hooks, component composition, Material-UI theming
 
-### Key Design Patterns
-1. **Repository Pattern**: EF Core DbContext acts as repository
-2. **DTO Pattern**: Clean separation between API contracts and domain models
-3. **Dependency Injection**: All services registered in DI container
-4. **Service Layer**: Business logic separated from controllers
 
-## 🚀 Setup Instructions
 
-### Prerequisites
-- .NET 10 SDK
-- Node.js (v18 or later)
-- Visual Studio 2025 or VS Code
+## 🚀 Quick Start
 
-### Installation
+**Prerequisites:** .NET 10 SDK, Node.js 18+
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd LemonTodo
-   ```
+```bash
+# Clone and navigate
+git clone <repository-url>
+cd LemonTodo
 
-2. **Backend Setup**
-   ```bash
-   # Restore dependencies
-   dotnet restore
-   ```
+# Restore backend
+dotnet restore
 
-3. **Frontend Setup**
-   ```bash
-   cd lemontodo.client
-   npm install
-   ```
+# Install frontend dependencies
+cd lemontodo.client
+npm install
+cd ..
 
-4. **Run the Application**
-   ```bash
-   # From the root directory
-   dotnet run --project LemonTodo.Server
-   ```
-   
-   The application will start on `https://localhost:5001` (or the port specified in launchSettings.json)
+# Run application
+dotnet run --project LemonTodo.Server
 
-5. **Run Tests**
-   ```bash
-   dotnet test
-   ```
+# Run tests
+dotnet test
+```>
 
-### Configuration
+### Authentication
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - Login and get JWT token
 
-The application uses `appsettings.json` for configuration:
+### Tasks (requires Bearer token)
+- `GET /api/tasks` - Get all user tasks
+- `GET /api/tasks/{id}` - Get specific task
+- `POST /api/tasks` - Create task
+- `PUT /api/tasks/{id}` - Update task
+- `DELETE /api/tasks/{id}` - Delete task
+- `PUT /api/tasks/bulk-delete` - Delete multiple tasks
+- `GET /api/tasks/export?format=json|csv` - Export tasks
+- `POST /api/tasks/import` - Import tasks from JSON file
 
+**Sample Request:**
 ```json
-{
-  "Jwt": {
-    "Secret": "",  // Generated at runtime if not provided
-    "Issuer": "LemonTodoAPI",
-    "Audience": "LemonTodoClient"
-  },
-  "Frontend": {
-    "Url": "https://localhost:58900"
-  }
-}
-```
-
-**Important**: For production, set a strong JWT secret in environment variables or secure configuration.
-
-## 📚 API Documentation
-
-### Authentication Endpoints
-
-#### Register User
-```http
-POST /api/auth/register
-Content-Type: application/json
-
-{
-  "username": "string",
-  "password": "string"
-}
-
-Response: 200 OK
-{
-  "token": "string",
-  "username": "string"
-}
-```
-
-#### Login
-```http
-POST /api/auth/login
-Content-Type: application/json
-
-{
-  "username": "string",
-  "password": "string"
-}
-
-Response: 200 OK
-{
-  "token": "string",
-  "username": "string"
-}
-```
-
-### Task Endpoints (Requires Authentication)
-
-#### Get All Tasks
-```http
-GET /api/tasks?isCompleted={bool}&priority={int}&sortBy={string}&descending={bool}
-Authorization: Bearer {token}
-
-Response: 200 OK
-{
-  "tasks": [...],
-  "totalCount": 0,
-  "statistics": {
-    "totalTasks": 0,
-    "completedTasks": 0,
-    "pendingTasks": 0,
-    "overdueTasks": 0
-  }
-}
-```
-
-#### Get Single Task
-```http
-GET /api/tasks/{id}
-Authorization: Bearer {token}
-```
-
-#### Create Task
-```http
 POST /api/tasks
 Authorization: Bearer {token}
-Content-Type: application/json
 
 {
-  "title": "string",
-  "description": "string",
-  "priority": 1,
-  "dueDate": "2024-12-31"
-}
-```
-
-#### Update Task
-```http
-PUT /api/tasks/{id}
-Authorization: Bearer {token}
-Content-Type: application/json
-
-{
-  "title": "string",
-  "description": "string",
-  "isCompleted": true,
+  "title": "Complete project",
+  "description": "Finish the LemonTodo app",
   "priority": 2,
   "dueDate": "2024-12-31"
 }
 ```
-
-#### Delete Task
-```http
-DELETE /api/tasks/{id}
-Authorization: Bearer {token}
-```
-
-#### Bulk Delete Tasks
-```http
-POST /api/tasks/bulk-delete
-Authorization: Bearer {token}
-Content-Type: application/json
-
-[1, 2, 3]
+</details>
 ```
 
 ## 🔒 Security
 
-### Authentication & Authorization
-- **JWT Tokens**: HS256 algorithm with 7-day expiration
-- **Password Security**: PBKDF2 with 100,000 iterations, SHA256, random salt per user
-- **Authorization**: Bearer token required for all task operations
-- **User Isolation**: Database-level user ID filtering ensures data isolation
-
-### Input Validation
-- **Server-side validation**: DataAnnotations on DTOs
-- **Client-side validation**: HTML5 validation + React form handling
-- **SQL Injection Protection**: EF Core parameterized queries
-- **XSS Protection**: React automatically escapes content
-
-### Configuration Security
-- **No hardcoded secrets**: JWT secret generated at runtime for development
-- **Environment-based config**: Production secrets should use environment variables or Azure Key Vault
-- **CORS**: Configured for specific origins only
-
-### Error Handling
-- **Safe error messages**: Generic errors to client, detailed logs server-side
-- **Try-catch blocks**: All controller actions wrapped in exception handling
-- **Logging**: Structured logging with different severity levels
+- **JWT**: HS256, 7-day expiration
+- **Passwords**: PBKDF2 (100k iterations, SHA256, per-user salt)
+- **Authorization**: Bearer token required, user isolation at DB level
+- **Validation**: Client + server-side with custom validators
+- **Protection**: EF Core parameterized queries (SQL injection), React auto-escaping (XSS)
+- **Secrets**: Runtime JWT generation (dev), environment vars (prod)
 
 ## 🧪 Testing
 
-### Test Coverage
-The project includes comprehensive unit tests covering:
+**Backend Tests (xUnit + Moq):** PasswordHasher, Auth handlers, Task handlers, Validators, Middleware  
+**Frontend Tests (Vitest + RTL):** Components, hooks, error boundaries
 
-1. **PasswordHasherTests**: Password hashing and verification logic
-2. **AuthControllerTests**: Registration, login, duplicate username handling
-3. **TasksControllerTests**: CRUD operations, authorization, filtering, statistics
+Run: `dotnet test` (backend) | `npm test` (frontend)
 
-### Running Tests
-```bash
-dotnet test
-```
-
-### Test Approach
-- **Isolated tests**: Each test uses a unique in-memory database
-- **Mocking**: External dependencies mocked with Moq
-- **Arrange-Act-Assert**: Clear test structure
-- **Edge cases**: Invalid inputs, unauthorized access, not found scenarios
-
-## 💡 Design Decisions
-
-### Why EF Core InMemory?
-- Fast for development and testing
-- No external dependencies
-- Easy to reset between tests
-- Note: For production, switch to SQL Server, PostgreSQL, or Cosmos DB
-
-### Why JWT?
-- Stateless authentication (no server-side session storage)
-- Scalable across multiple servers
-- Industry-standard for SPAs
-- Easy to validate without database lookup
-
-### Why React?
-- Component-based architecture
-- Large ecosystem and community
-- Excellent performance with Virtual DOM
-- Easy state management with hooks
-
-### Why Not Use Identity?
-- Demonstrates understanding of authentication fundamentals
-- Lighter weight for this use case
-- More control over the implementation
-- Could easily migrate to ASP.NET Core Identity in future
-
-### DTOs vs Direct Model Exposure
-- **Security**: Prevents over-posting attacks
-- **Flexibility**: API contract independent of database schema
-- **Validation**: Clear validation rules at API boundary
-- **Versioning**: Easier to version API without changing domain models
-
-## 🚀 Future Enhancements
-
-### High Priority
-1. **Database Migration**: Switch to persistent database (SQL Server/PostgreSQL)
-2. **Refresh Tokens**: Implement refresh token flow for better security
-3. **Email Verification**: Add email confirmation on registration
-4. **Password Reset**: Forgot password functionality
-5. **Task Sharing**: Share tasks with other users
-6. **Task Categories**: Organize tasks by categories/projects
-
-### Features
-1. **Recurring Tasks**: Support for repeating tasks
-2. **File Attachments**: Attach files to tasks
-3. **Comments**: Add comments/notes to tasks
-4. **Notifications**: Email or push notifications for due dates
-5. **Search**: Full-text search across tasks
-6. **Tags**: Tag system for better organization
-7. **Dark Mode**: UI theme toggle
-
-### Technical Improvements
-1. **Rate Limiting**: Protect against abuse
-2. **Caching**: Redis caching for frequently accessed data
-3. **API Versioning**: Support multiple API versions
-4. **GraphQL**: Alternative to REST API
-5. **Real-time Updates**: SignalR for live task updates
-6. **Containerization**: Docker support
-7. **CI/CD**: GitHub Actions or Azure DevOps pipelines
-8. **Monitoring**: Application Insights or similar
-9. **Health Checks**: API health monitoring endpoints
-10. **Swagger/OpenAPI**: Interactive API documentation
-
-### Scalability Considerations
-1. **Horizontal Scaling**: Stateless design supports load balancing
-2. **Database Optimization**: Indexes on frequently queried columns
-3. **Pagination**: Implement pagination for large task lists
-4. **Lazy Loading**: Defer loading of task details until needed
-5. **CDN**: Serve static frontend assets from CDN
-6. **Background Jobs**: Use Hangfire for scheduled tasks
-
-## 📝 Assumptions
-
-1. **Single Device**: No multi-device synchronization in current version
-2. **English Only**: No internationalization (yet)
-3. **Individual Use**: Designed for personal task management
-4. **Modern Browsers**: Assumes ES6+ JavaScript support
-5. **HTTPS**: Production deployment should use HTTPS
-6. **Time Zones**: All dates stored in UTC, displayed in local time
-
-## 👨‍💻 Development Notes
-
-### Code Quality
-- **Consistent naming**: PascalCase for C#, camelCase for JavaScript
-- **Comments**: Minimal, code should be self-documenting
-- **Error handling**: Consistent patterns across codebase
-- **Logging**: Structured logging with context
-
-### Git Workflow
-- Feature branches for new development
-- Pull requests with code review
-- Semantic versioning for releases
-
-## 📄 License
-
-This project is for evaluation purposes.
-
-## 🙏 Acknowledgments
-
-Built as a take-home test demonstrating:
-- Clean architecture principles
-- RESTful API design
-- Security best practices
-- Production-ready code quality
-- Comprehensive testing approach
+**Approach:** Isolated in-memory DB per test, mocking, AAA pattern, edge cases
