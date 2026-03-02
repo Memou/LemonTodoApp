@@ -131,7 +131,7 @@ Authorization: Bearer {token}
 
 ## 🧪 Testing
 
-**Backend Tests (xUnit + Moq):** PasswordHasher, Auth handlers, Task handlers, Validators, Middleware  
+**Backend Tests (xUnit + Moq):** PasswordHasher, Auth handlers, Task handlers, Validators, Middleware,Integration tests for endpoints  
 **Frontend Tests (Vitest + RTL):** Components, hooks, error boundaries
 
 Run: `dotnet test` (backend) | `npm test` (frontend)
