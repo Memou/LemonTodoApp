@@ -25,9 +25,16 @@ export function CreateTaskModal({ open, onClose, onSubmit, error }) {
     const titleInputRef = useRef(null);
     const dateInputRef = useRef(null);
 
-    // Auto-focus title field when modal opens
+    // Reset form and auto-focus title field when modal opens
     useEffect(() => {
         if (open) {
+            // Reset form to initial state
+            setTaskForm({
+                title: '',
+                description: '',
+                priority: 1,
+                dueDate: getTodayDate()
+            });
             // Delay to ensure dialog is fully rendered
             const timer = setTimeout(() => {
                 titleInputRef.current?.focus();
