@@ -1,22 +1,25 @@
-# 🍋 LemonTodo
+# Task Flow
 
 Full-stack task management app built with .NET 10 and React 19, demonstrating modern architecture and security practices.
 
 ## ✨ How To Run
 
 Download or clone the code.
+
 -Open the solution in visual studio,preferably 2026.
+
 -Set LemonTodo.Server as the startup project,from top of the IDE at the startup project dropdown.
+
 -Select https profile from next to that dropdown and run the application (F5 or Ctrl+F5).
 
 It should download frontend dependencies for a minute or two and start the server and client should open up in the browser automatically. 
 
-## 🛠 Tech Stack
+## Tech Stack
 
 **Backend:** .NET 10, ASP.NET Core (Minimal APIs), EF Core (InMemory), JWT, xUnit, Moq  
 **Frontend:** React 19, Vite, Material-UI, Vitest, React Testing Library
 
-## ✨ Features
+## Features
 
 - **JWT Authentication** with PBKDF2 password hashing (100k iterations)
 - **Full CRUD** task management with priority levels (Low/Medium/High/Urgent)
@@ -27,12 +30,16 @@ It should download frontend dependencies for a minute or two and start the serve
 - **Comprehensive Validation** on client and server with custom validators
 - **Global Error Handling** with user-friendly messages
 
-## 🚀 Potential Enhancements
+## ✨ Potential Enhancements
 
 -Use result pattern at handlers and return more specific error messages.
+
 -For prod or upper environments use cloud secret vaults or environment variables instead of using user secrets. 
+
 -Implement health endpoints,application insight for better logging and monitoring.
+
 -Add rate limiter.
+
 -Security headers.
 
 
@@ -40,14 +47,14 @@ It should download frontend dependencies for a minute or two and start the serve
 **Scalability:** Pagination, indexing, CDN
 
 
-## 🏗 Architecture
+## Architecture
 
 **Backend:** Minimal APIs with Handler pattern, DTOs, DI, Middleware pipeline  
 **Frontend:** React hooks, component composition, Material-UI theming
 
 
 
-## 🚀 Quick Start
+##  Quick Start
 
 **Prerequisites:** .NET 10 SDK, Node.js 18+
 
