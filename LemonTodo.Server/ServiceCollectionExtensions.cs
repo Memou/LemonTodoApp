@@ -4,7 +4,7 @@ using LemonTodo.Server.Handlers.Tasks;
 using LemonTodo.Server.Services;
 using Microsoft.EntityFrameworkCore;
 
-namespace LemonTodo.Server.Extensions;
+namespace LemonTodo.Server;
 
 public static class ServiceCollectionExtensions
 {

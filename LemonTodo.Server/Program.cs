@@ -1,5 +1,5 @@
+using LemonTodo.Server;
 using LemonTodo.Server.Endpoints;
-using LemonTodo.Server.Extensions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
