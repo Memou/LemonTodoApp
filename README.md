@@ -21,6 +21,19 @@ It should download frontend dependencies for a minute or two and start the serve
 
 ## Features
 
+-For dev environment it has two step secret management, for JWT secret at this point, 
+
+It will look for a .net User Secret locally.This will allow the user to be logged in between stopping and lunching the app.
+
+(The UserSecretsId field in the backend .csproj file, is not a secret but a random location pointer for the local secret to be created at)
+
+If that doesnt work out it will create a temporary JWT secret in memory.
+
+Optional : You can setup userSecret via this command in windows for local jwt secret storage:
+
+dotnet user-secrets set "Jwt:Secret" "your-secret-value-here" --project LemonTodo.Server
+
+
 - **JWT Authentication** with PBKDF2 password hashing (100k iterations)
 - **Full CRUD** task management with priority levels (Low/Medium/High/Urgent)
 - **Real-time Dashboard** with task statistics and overdue tracking
